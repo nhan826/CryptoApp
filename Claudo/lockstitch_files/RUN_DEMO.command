@@ -46,10 +46,11 @@ if ! clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
     -o "$BRIDGE_OBJ" \
     -fPIC \
     -fmodules \
+    -std=c++11 \
     -I"$SCRIPT_DIR" 2>&1; then
     echo "❌ Bridge compilation failed!"
     echo "Run this in Terminal for full error details:"
-    echo "cd $SCRIPT_DIR && clang++ -c LockstitchBridge.mm -o build_output/LockstitchBridge.o -fPIC -fmodules -I."
+    echo "cd $SCRIPT_DIR && clang++ -c LockstitchBridge.mm -o build_output/LockstitchBridge.o -fPIC -fmodules -std=c++11 -I."
     read -p "Press Enter to close..."
     exit 1
 fi
@@ -90,6 +91,9 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 # Compile with pre-built library
 echo ""
 echo "Details: Linking with liblockstitch.a..."
+echo ""
+
+SWIFT_OUT=$(mktemp)
 if ! swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
     "$BRIDGE_OBJ" \
@@ -97,16 +101,27 @@ if ! swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -o "$APP_EXEC" \
     -framework Cocoa \
     -framework AppKit \
-    -suppress-warnings 2>&1; then
+    -suppress-warnings 2>&1 | tee "$SWIFT_OUT"; then
+    echo ""
     echo "❌ App compilation/linking failed"
     echo ""
+    echo "Full error output:"
+    cat "$SWIFT_OUT"
+    echo ""
     echo "Troubleshooting:"
-    echo "1. Check that all source files are in the same folder"
-    echo "2. Try running this command for details:"
-    echo "   cd $SCRIPT_DIR && swiftc CryptoApp.swift -import-objc-header LockstitchBridge.h build_output/LockstitchBridge.o liblockstitch.a -o build_output/CryptoApp -framework Cocoa -framework AppKit"
+    echo "1. Make sure all source files are in: $SCRIPT_DIR"
+    echo "2. Files needed:"
+    echo "   - CryptoApp.swift"
+    echo "   - LockstitchBridge.h"
+    echo "   - LockstitchBridge.mm"
+    echo "   - Lockstitch.h"
+    echo "   - Lockstitch.cpp"
+    echo "   - liblockstitch.a"
     read -p "Press Enter to close..."
     exit 1
 fi
+
+rm -f "$SWIFT_OUT"
 
 if [ ! -f "$APP_EXEC" ]; then
     echo "❌ Compilation failed"
