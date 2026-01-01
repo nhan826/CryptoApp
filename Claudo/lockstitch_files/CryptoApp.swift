@@ -206,7 +206,6 @@ struct ContentView: View {
     }
 }
 
-@main
 struct CryptoApp: App {
     var body: some Scene {
         WindowGroup {
@@ -214,3 +213,6 @@ struct CryptoApp: App {
         }
     }
 }
+
+@main
+extension CryptoApp {}
