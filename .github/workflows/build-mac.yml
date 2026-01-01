@@ -42,6 +42,7 @@ jobs:
         cp framework.h CryptoApp-ready/
         cp LockstitchBridge.h CryptoApp-ready/
         cp LockstitchBridge.mm CryptoApp-ready/
+        cp main.swift CryptoApp-ready/
         cp CryptoApp.swift CryptoApp-ready/
         cp Info.plist CryptoApp-ready/
         cp RUN_DEMO.command CryptoApp-ready/
