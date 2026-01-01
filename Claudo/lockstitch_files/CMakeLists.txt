@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
-project(Lockstitch)
+project(CryptoApp)
+
+# Enable Swift support
+enable_language(Swift)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_Swift_COMPILER_WORKS TRUE)
 
 # Add platform-specific compilation flags
 if(APPLE OR UNIX AND NOT APPLE)
@@ -85,6 +89,28 @@ if(APPLE)
     set_target_properties(lockstitch_shared PROPERTIES
         SUFFIX ".dylib"
         PREFIX "lib"
+    )
+endif()
+
+# Build Swift app executable
+add_executable(CryptoApp
+    ../CryptoApp.swift
+)
+
+# Link the app against the library
+target_link_libraries(CryptoApp PRIVATE lockstitch)
+
+# macOS app settings
+if(APPLE)
+    set_target_properties(CryptoApp PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist"
+    )
+    
+    # Link Cocoa framework for native macOS support
+    target_link_libraries(CryptoApp PRIVATE
+        "-framework Cocoa"
+        "-framework AppKit"
     )
 endif()
 
