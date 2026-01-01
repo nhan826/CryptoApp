@@ -1,35 +1,138 @@
 #!/bin/bash
 
-# CryptoApp - Just compile and run. That's it.
+# CryptoApp - Production Build
+# Builds Lockstitch library + Swift app with real encryption backend
+# Creates a standalone .app bundle ready to share
+
+set -e  # Exit on any error
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-APP_DIR="$SCRIPT_DIR/CryptoApp.app/Contents/MacOS"
-APP_NAME="CryptoApp"
+BUILD_DIR="$SCRIPT_DIR/build_production"
+APP_BUNDLE="$SCRIPT_DIR/CryptoApp.app"
+APP_CONTENTS="$APP_BUNDLE/Contents/MacOS"
 
-echo "🔧 Building CryptoApp..."
+echo "🔒 CryptoApp - Production Build"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Compile the Swift app
-mkdir -p "$APP_DIR"
+# Step 1: Check dependencies
+echo "📋 Checking dependencies..."
+if ! command -v cmake &> /dev/null; then
+    echo "📥 Installing CMake..."
+    if ! command -v brew &> /dev/null; then
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
+    brew install cmake > /dev/null 2>&1
+fi
+echo "✅ Dependencies ready"
 
-echo "Compiling app..."
-if swiftc "$SCRIPT_DIR/CryptoApp.swift" -o "$APP_DIR/$APP_NAME" 2>&1; then
-    echo "✅ Built successfully!"
-    echo ""
-    echo "🚀 Launching..."
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    
-    # Run the app
-    open -a "$APP_DIR/.." --args
-else
-    echo "❌ Build failed"
-    echo "Make sure you have Xcode Command Line Tools installed:"
-    echo "  xcode-select --install"
-    read -p "Press Enter to close..."
+# Step 2: Build Lockstitch library with CMake
+echo ""
+echo "📦 Building Lockstitch library..."
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
+
+cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release .. > /dev/null 2>&1
+make -j4 > /dev/null 2>&1
+
+LIBRARY_FILE="$BUILD_DIR/liblockstitch.a"
+if [ ! -f "$LIBRARY_FILE" ]; then
+    echo "❌ Failed to build library"
+    exit 1
+fi
+echo "✅ Library built: $LIBRARY_FILE"
+
+cd "$SCRIPT_DIR"
+
+# Step 3: Prepare app bundle
+echo ""
+echo "🏗️  Creating app bundle..."
+rm -rf "$APP_BUNDLE"
+mkdir -p "$APP_CONTENTS"
+
+# Create Info.plist
+mkdir -p "$APP_BUNDLE/Contents/Resources"
+cat > "$APP_BUNDLE/Contents/Info.plist" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>CryptoApp</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.cryptoapp.mac</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>CryptoApp</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.13</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+</dict>
+</plist>
+EOF
+
+# Step 4: Compile Swift app with Objective-C++ bridge
+echo ""
+echo "🔨 Compiling Swift app with Lockstitch bridge..."
+
+# Compile Objective-C++ wrapper
+WRAPPER_OBJ="$BUILD_DIR/LockstitchBridge.o"
+clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
+    -o "$WRAPPER_OBJ" \
+    -fPIC \
+    -fmodules \
+    -I"$SCRIPT_DIR" \
+    -I"$BUILD_DIR" \
+    2>/dev/null
+
+if [ ! -f "$WRAPPER_OBJ" ]; then
+    echo "❌ Failed to compile Objective-C++ wrapper"
     exit 1
 fi
 
+# Compile Swift app and link everything
+swiftc "$SCRIPT_DIR/CryptoApp.swift" \
+    -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
+    "$WRAPPER_OBJ" \
+    "$LIBRARY_FILE" \
+    -o "$APP_CONTENTS/CryptoApp" \
+    -framework Cocoa \
+    -framework AppKit \
+    2>/dev/null
+
+if [ ! -f "$APP_CONTENTS/CryptoApp" ]; then
+    echo "❌ Failed to compile Swift app"
+    exit 1
+fi
+
+echo "✅ App compiled and linked"
+
+# Step 5: Launch
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🚀 Launching CryptoApp..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+open "$APP_BUNDLE"
+
+echo ""
+echo "✅ Done! App bundle created at:"
+echo "   $APP_BUNDLE"
+echo ""
+echo "To share this app with others:"
+echo "   1. Zip the CryptoApp.app folder"
+echo "   2. Share the zip file"
+echo "   3. They can unzip and run it directly (no build needed)"
 echo ""
 read -p "Press Enter to close..."

@@ -1,7 +1,11 @@
 import SwiftUI
 import Foundation
 
-// MARK: - Encryption Engine (links to Lockstitch C++ library)
+// MARK: - Lockstitch Bridge Import
+// This bridge connects to the real Lockstitch C++ library
+// LockstitchBridge is defined in LockstitchBridge.mm (Objective-C++)
+
+// MARK: - Encryption Engine
 @MainActor
 class CryptoEngine: ObservableObject {
     @Published var inputText: String = ""
@@ -10,9 +14,6 @@ class CryptoEngine: ObservableObject {
     @Published var statusColor: Color = .green
     @Published var isProcessing: Bool = false
     
-    // TODO: Replace with real LockstitchWrapper calls
-    // For now using placeholder encryption to demonstrate functionality
-    
     func encrypt() {
         guard !inputText.isEmpty else {
             updateStatus("No text to encrypt", color: .red)
@@ -20,13 +21,15 @@ class CryptoEngine: ObservableObject {
         }
         
         isProcessing = true
-        // TODO: Call LockstitchWrapper.encryptString(inputText)
-        let encrypted = simpleXOR(inputText, key: "CRYPTOKEY")
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            self.outputText = encrypted
-            self.updateStatus("Encrypted successfully", color: .green)
-            self.isProcessing = false
+        DispatchQueue.global().async {
+            // Call the real Lockstitch library through the bridge
+            let encrypted = LockstitchBridge.encrypt(inputText)
+            
+            DispatchQueue.main.async {
+                self.outputText = encrypted
+                self.updateStatus("Encrypted with Lockstitch", color: .green)
+                self.isProcessing = false
+            }
         }
     }
     
@@ -37,13 +40,15 @@ class CryptoEngine: ObservableObject {
         }
         
         isProcessing = true
-        // TODO: Call LockstitchWrapper.decryptString(inputText)
-        let decrypted = reverseXOR(inputText, key: "CRYPTOKEY")
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            self.outputText = decrypted
-            self.updateStatus("Decrypted successfully", color: .green)
-            self.isProcessing = false
+        DispatchQueue.global().async {
+            // Call the real Lockstitch library through the bridge
+            let decrypted = LockstitchBridge.decrypt(inputText)
+            
+            DispatchQueue.main.async {
+                self.outputText = decrypted
+                self.updateStatus("Decrypted with Lockstitch", color: .green)
+                self.isProcessing = false
+            }
         }
     }
     
@@ -61,46 +66,12 @@ class CryptoEngine: ObservableObject {
     func clear() {
         inputText = ""
         outputText = ""
-        updateStatus("Cleared", color: .green)
+        updateStatus("Ready", color: .green)
     }
     
     private func updateStatus(_ message: String, color: Color) {
         status = message
         statusColor = color
-    }
-    
-    // Placeholder encryption (will be replaced with Lockstitch)
-    private func simpleXOR(_ text: String, key: String) -> String {
-        var result = ""
-        let chars = Array(text)
-        let keyChars = Array(key)
-        
-        for (i, char) in chars.enumerated() {
-            let keyChar = keyChars[i % keyChars.count]
-            let xored = UInt32(char.asciiValue ?? 0) ^ UInt32(keyChar.asciiValue ?? 0)
-            result.append(String(format: "%02x", xored))
-        }
-        return result
-    }
-    
-    private func reverseXOR(_ text: String, key: String) -> String {
-        var result = ""
-        let keyChars = Array(key)
-        var i = 0
-        
-        while i < text.count {
-            let start = text.index(text.startIndex, offsetBy: i)
-            let end = text.index(text.startIndex, offsetBy: min(i + 2, text.count))
-            let hexPair = String(text[start..<end])
-            
-            if let byte = UInt32(hexPair, radix: 16) {
-                let keyChar = keyChars[(i/2) % keyChars.count]
-                let decrypted = UInt8(byte ^ UInt32(keyChar.asciiValue ?? 0))
-                result.append(Character(UnicodeScalar(decrypted)))
-            }
-            i += 2
-        }
-        return result
     }
 }
 
