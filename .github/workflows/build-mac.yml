@@ -26,6 +26,7 @@ jobs:
           LockstitchBridge-x86_64.o Lockstitch-x86_64.o \
           -parse-as-library \
           -lc++ \
+          -Xcc -std=c++17 \
           -o CryptoApp-x86_64 \
           -target x86_64-apple-macos11 \
           -framework Cocoa \
@@ -40,6 +41,7 @@ jobs:
           LockstitchBridge-arm64.o Lockstitch-arm64.o \
           -parse-as-library \
           -lc++ \
+          -Xcc -std=c++17 \
           -o CryptoApp-arm64 \
           -target arm64-apple-macos11 \
           -framework Cocoa \
