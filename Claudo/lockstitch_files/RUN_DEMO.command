@@ -3,44 +3,53 @@
 # CryptoApp Demo - Double-click to run!
 # This script compiles and runs the demo app without any external dependencies
 
-set -e
-
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DEMO_FILE="$SCRIPT_DIR/CryptoApp-Demo.swift"
 APP_NAME="CryptoApp-Demo"
 BUILD_DIR="$SCRIPT_DIR/build_demo"
 
 echo "🔧 Building CryptoApp Demo..."
+echo "This may take 30-60 seconds on first run..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Create build directory
 mkdir -p "$BUILD_DIR"
 
+# Check if demo file exists
+if [ ! -f "$DEMO_FILE" ]; then
+    echo "❌ Error: CryptoApp-Demo.swift not found!"
+    echo "Location: $DEMO_FILE"
+    read -p "Press Enter to close..."
+    exit 1
+fi
+
+echo "📝 Source file: $DEMO_FILE"
+echo "📦 Build directory: $BUILD_DIR"
+echo ""
+
 # Compile with swiftc (no external dependencies needed!)
-if swiftc "$DEMO_FILE" -o "$BUILD_DIR/$APP_NAME" 2>/dev/null; then
+echo "⏳ Compiling (this takes a moment)..."
+swiftc "$DEMO_FILE" -o "$BUILD_DIR/$APP_NAME" 2>&1
+
+if [ -f "$BUILD_DIR/$APP_NAME" ]; then
+    echo ""
     echo "✅ Build successful!"
     echo ""
     echo "🚀 Launching app..."
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
     
     # Run the compiled app
     "$BUILD_DIR/$APP_NAME"
 else
     echo ""
-    echo "❌ Build failed. Trying alternative method..."
+    echo "❌ Compilation failed!"
     echo ""
-    
-    # Try with SDK explicitly set
-    MACOS_SDK=$(xcrun --show-sdk-path --sdk macosx 2>/dev/null)
-    if [ ! -z "$MACOS_SDK" ]; then
-        swiftc "$DEMO_FILE" -o "$BUILD_DIR/$APP_NAME" -isysroot "$MACOS_SDK" -F "$MACOS_SDK/System/Library/Frameworks"
-        "$BUILD_DIR/$APP_NAME"
-    else
-        echo "❌ Error: Swift compiler not found or macOS SDK unavailable"
-        echo "💡 Try running: xcode-select --install"
-        read -p "Press Enter to close..."
-        exit 1
-    fi
+    echo "💡 Make sure you have Xcode installed:"
+    echo "   xcode-select --install"
+    echo ""
+    read -p "Press Enter to close..."
+    exit 1
 fi
 
 echo ""
