@@ -176,24 +176,37 @@ echo ""
 
 # Step 4: Compile and link Swift app
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "STEP 4: Compiling Swift App"
+echo "STEP 4: Compiling Swift App (this may take 30-60 seconds)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
 echo "Command: swiftc CryptoApp.swift -import-objc-header LockstitchBridge.h ..."
 echo "Linking with: $BRIDGE_OBJ and $LOCKSTITCH_OBJ"
 echo ""
+echo "Starting Swift compilation at $(date)"
+echo ""
 
-swiftc "$SCRIPT_DIR/CryptoApp.swift" \
+# Save output to file so we can see it even if process hangs
+SWIFT_LOG="$BUILD_DIR/swift_compile.log"
+
+timeout 120 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
     "$BRIDGE_OBJ" \
     "$LOCKSTITCH_OBJ" \
     -o "$APP_EXEC" \
     -framework Cocoa \
-    -framework AppKit 2>&1
+    -framework AppKit > "$SWIFT_LOG" 2>&1
 
 SWIFT_EXIT=$?
+echo "Compilation finished at $(date)"
 echo ""
+
+# Show the log output
+echo "=== Compiler Output ==="
+cat "$SWIFT_LOG"
+echo "=== End Compiler Output ==="
+echo ""
+
 echo "Swift compilation exit code: $SWIFT_EXIT"
 
 if [ -f "$APP_EXEC" ]; then
@@ -204,6 +217,8 @@ else
     echo ""
     echo "Check build directory:"
     ls -la "$BUILD_DIR"
+    echo ""
+    echo "Full compiler output saved to: $SWIFT_LOG"
     echo ""
     read -p "Press Enter to close..."
     exit 1
