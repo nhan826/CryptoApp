@@ -5,7 +5,5 @@
 
 + (NSString *)encryptString:(NSString *)plaintext;
 + (NSString *)decryptString:(NSString *)ciphertext;
-+ (BOOL)encryptFile:(NSString *)inputPath outputPath:(NSString *)outputPath;
-+ (BOOL)decryptFile:(NSString *)inputPath outputPath:(NSString *)outputPath;
 
 @end
