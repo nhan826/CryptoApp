@@ -42,11 +42,17 @@ mkdir -p "$BUILD_DIR"
 # Step 1: Compile Objective-C++ bridge
 echo "⚙️  Compiling bridge..."
 BRIDGE_OBJ="$BUILD_DIR/LockstitchBridge.o"
-clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
+if ! clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
     -o "$BRIDGE_OBJ" \
     -fPIC \
     -fmodules \
-    -I"$SCRIPT_DIR" 2>&1 | grep -i error || true
+    -I"$SCRIPT_DIR" 2>&1; then
+    echo "❌ Bridge compilation failed!"
+    echo "Run this in Terminal for full error details:"
+    echo "cd $SCRIPT_DIR && clang++ -c LockstitchBridge.mm -o build_output/LockstitchBridge.o -fPIC -fmodules -I."
+    read -p "Press Enter to close..."
+    exit 1
+fi
 
 # Step 2: Compile Swift app and link with library
 echo "🔨 Compiling app..."
@@ -82,13 +88,25 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 </PLIST>
 
 # Compile with pre-built library
-swiftc "$SCRIPT_DIR/CryptoApp.swift" \
+echo ""
+echo "Details: Linking with liblockstitch.a..."
+if ! swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
     "$BRIDGE_OBJ" \
     "$SCRIPT_DIR/liblockstitch.a" \
     -o "$APP_EXEC" \
     -framework Cocoa \
-    -framework AppKit 2>&1
+    -framework AppKit \
+    -suppress-warnings 2>&1; then
+    echo "❌ App compilation/linking failed"
+    echo ""
+    echo "Troubleshooting:"
+    echo "1. Check that all source files are in the same folder"
+    echo "2. Try running this command for details:"
+    echo "   cd $SCRIPT_DIR && swiftc CryptoApp.swift -import-objc-header LockstitchBridge.h build_output/LockstitchBridge.o liblockstitch.a -o build_output/CryptoApp -framework Cocoa -framework AppKit"
+    read -p "Press Enter to close..."
+    exit 1
+fi
 
 if [ ! -f "$APP_EXEC" ]; then
     echo "❌ Compilation failed"
