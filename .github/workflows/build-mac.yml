@@ -31,7 +31,7 @@ jobs:
         make
     
     - name: Upload Library Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: lockstitch-mac-libraries
         path: |
@@ -47,7 +47,7 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Download Library Artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: lockstitch-mac-libraries
     
@@ -160,14 +160,14 @@ jobs:
         ls -la CryptoApp-macOS/CryptoApp/
     
     - name: Upload Library Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: CryptoApp-compiled-library
         path: CryptoApp-macOS/Lockstitch/build/liblockstitch.a
         retention-days: 30
     
     - name: Upload Complete Project
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: CryptoApp-macOS-project
         path: CryptoApp-macOS/
@@ -179,7 +179,7 @@ jobs:
         zip -r CryptoApp-macOS-source.zip . -x "*.git*" "build/*" "*.o" "*.a"
     
     - name: Upload Source Package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: CryptoApp-macOS-source
         path: CryptoApp-macOS/CryptoApp-macOS-source.zip
@@ -194,7 +194,7 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Download All Artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
