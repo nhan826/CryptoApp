@@ -115,7 +115,7 @@ echo ""
 
 # Run Swift compilation, capturing all output
 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
-    -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
+    -bridging-header "$SCRIPT_DIR/CryptoApp-Bridging-Header.h" \
     "$BRIDGE_OBJ" \
     "$LOCKSTITCH_OBJ" \
     -o "$APP_EXEC" \
