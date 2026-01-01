@@ -1,12 +1,6 @@
 import SwiftUI
 import Foundation
 
-// MARK: - Lockstitch Bridge Import
-// This bridge connects to the real Lockstitch C++ library
-// LockstitchBridge is defined in LockstitchBridge.mm (Objective-C++)
-
-// MARK: - Encryption Engine
-@MainActor
 class CryptoEngine: ObservableObject {
     @Published var inputText: String = ""
     @Published var outputText: String = ""
@@ -22,12 +16,11 @@ class CryptoEngine: ObservableObject {
         
         isProcessing = true
         DispatchQueue.global().async {
-            // Call the real Lockstitch library through the bridge
-            let encrypted = LockstitchBridge.encrypt(inputText)
+            let encrypted = LockstitchBridge.encryptString(self.inputText)
             
             DispatchQueue.main.async {
                 self.outputText = encrypted
-                self.updateStatus("Encrypted with Lockstitch", color: .green)
+                self.updateStatus("✅ Encrypted with Lockstitch", color: .green)
                 self.isProcessing = false
             }
         }
@@ -41,12 +34,11 @@ class CryptoEngine: ObservableObject {
         
         isProcessing = true
         DispatchQueue.global().async {
-            // Call the real Lockstitch library through the bridge
-            let decrypted = LockstitchBridge.decrypt(inputText)
+            let decrypted = LockstitchBridge.decryptString(self.inputText)
             
             DispatchQueue.main.async {
                 self.outputText = decrypted
-                self.updateStatus("Decrypted with Lockstitch", color: .green)
+                self.updateStatus("✅ Decrypted with Lockstitch", color: .green)
                 self.isProcessing = false
             }
         }
@@ -60,238 +52,165 @@ class CryptoEngine: ObservableObject {
         
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(outputText, forType: .string)
-        updateStatus("Copied to clipboard", color: .blue)
+        updateStatus("📋 Copied to clipboard", color: .blue)
     }
     
     func clear() {
         inputText = ""
         outputText = ""
-        updateStatus("Ready", color: .green)
+        updateStatus("Cleared", color: .gray)
     }
     
     private func updateStatus(_ message: String, color: Color) {
-        status = message
-        statusColor = color
+        DispatchQueue.main.async {
+            self.status = message
+            self.statusColor = color
+        }
     }
 }
 
-// MARK: - Main Content View
 struct ContentView: View {
     @StateObject private var crypto = CryptoEngine()
-    @FocusState private var focusedField: FocusField?
-    
-    enum FocusField {
-        case input
-        case output
-    }
     
     var body: some View {
-        ZStack {
-            // Background
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.95, green: 0.97, blue: 1.0),
-                    Color(red: 0.92, green: 0.96, blue: 1.0)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 8) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("CryptoApp")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                            Text("Secure Text Encryption")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                        Spacer()
-                        Image(systemName: "lock.shield.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.white)
+        VStack(spacing: 0) {
+            VStack(spacing: 12) {
+                HStack {
+                    Text("🔒")
+                        .font(.system(size: 32))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("CryptoApp")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Text("Lockstitch Encryption")
+                            .font(.caption)
+                            .foregroundColor(.gray)
                     }
-                    .padding(20)
+                    Spacer()
                 }
+                .padding(20)
                 .background(
                     LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(red: 0.2, green: 0.4, blue: 0.8),
-                            Color(red: 0.1, green: 0.3, blue: 0.7)
-                        ]),
+                        gradient: Gradient(colors: [Color.blue.opacity(0.8), Color.blue.opacity(0.6)]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-                
-                // Main Content
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Input Section
-                        VStack(alignment: .leading, spacing: 8) {
-                            Label("Input Text", systemImage: "pencil.circle.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.primary)
-                            
-                            TextEditor(text: $crypto.inputText)
-                                .font(.system(.body, design: .monospaced))
-                                .frame(minHeight: 100)
-                                .padding(12)
-                                .background(Color.white)
-                                .cornerRadius(10)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(Color.blue.opacity(0.2), lineWidth: 1)
-                                )
-                                .focused($focusedField, equals: .input)
-                        }
-                        
-                        // Output Section
-                        VStack(alignment: .leading, spacing: 8) {
-                            Label("Output Text", systemImage: "checkmark.circle.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.primary)
-                            
-                            TextEditor(text: $crypto.outputText)
-                                .font(.system(.body, design: .monospaced))
-                                .frame(minHeight: 100)
-                                .padding(12)
-                                .background(Color.gray.opacity(0.05))
-                                .cornerRadius(10)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                )
-                                .disabled(true)
-                        }
-                        
-                        // Button Grid
-                        VStack(spacing: 12) {
-                            HStack(spacing: 12) {
-                                ActionButton(
-                                    title: "Encrypt",
-                                    icon: "lock.fill",
-                                    color: .blue,
-                                    isLoading: crypto.isProcessing,
-                                    action: crypto.encrypt
-                                )
-                                
-                                ActionButton(
-                                    title: "Decrypt",
-                                    icon: "lock.open.fill",
-                                    color: .green,
-                                    isLoading: crypto.isProcessing,
-                                    action: crypto.decrypt
-                                )
-                            }
-                            
-                            HStack(spacing: 12) {
-                                ActionButton(
-                                    title: "Copy",
-                                    icon: "doc.on.doc.fill",
-                                    color: .orange,
-                                    isLoading: false,
-                                    action: crypto.copyToClipboard
-                                )
-                                
-                                ActionButton(
-                                    title: "Clear",
-                                    icon: "trash.fill",
-                                    color: .red,
-                                    isLoading: false,
-                                    action: crypto.clear
-                                )
-                            }
-                        }
-                        
-                        // Status Bar
-                        HStack {
-                            Image(systemName: crypto.statusColor == .green ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                                .foregroundColor(crypto.statusColor)
-                            
-                            Text(crypto.status)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(crypto.statusColor)
-                            
-                            Spacer()
-                        }
-                        .padding(12)
-                        .background(crypto.statusColor.opacity(0.1))
-                        .cornerRadius(8)
-                        
-                        // Footer
-                        VStack(spacing: 4) {
-                            Text("Powered by Lockstitch")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.gray)
-                            
-                            Text("Military-grade encryption for your data")
-                                .font(.system(size: 11))
-                                .foregroundColor(.gray.opacity(0.7))
-                        }
-                        .padding(.top, 8)
-                    }
-                    .padding(24)
-                }
+                .foregroundColor(.white)
             }
-        }
-        .frame(minWidth: 600, minHeight: 700)
-    }
-}
-
-// MARK: - Action Button Component
-struct ActionButton: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let isLoading: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                if isLoading {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                } else {
-                    Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
+            
+            Divider()
+            
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Input Text")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    
+                    TextEditor(text: $crypto.inputText)
+                        .font(.body)
+                        .frame(minHeight: 100)
+                        .padding(8)
+                        .border(Color.gray.opacity(0.3))
+                        .background(Color.white)
                 }
                 
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
+                HStack(spacing: 12) {
+                    Button(action: crypto.encrypt) {
+                        HStack {
+                            Image(systemName: "lock.fill")
+                            Text("Encrypt")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(6)
+                    }
+                    
+                    Button(action: crypto.decrypt) {
+                        HStack {
+                            Image(systemName: "lock.open.fill")
+                            Text("Decrypt")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                        .background(Color.orange)
+                        .foregroundColor(.white)
+                        .cornerRadius(6)
+                    }
+                }
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Output Text")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    
+                    TextEditor(text: $crypto.outputText)
+                        .font(.body)
+                        .frame(minHeight: 100)
+                        .padding(8)
+                        .border(Color.gray.opacity(0.3))
+                        .background(Color(.lightGray).opacity(0.1))
+                        .disabled(true)
+                }
+                
+                HStack(spacing: 12) {
+                    Button(action: crypto.copyToClipboard) {
+                        HStack {
+                            Image(systemName: "doc.on.doc")
+                            Text("Copy")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(6)
+                    }
+                    
+                    Button(action: crypto.clear) {
+                        HStack {
+                            Image(systemName: "xmark.circle.fill")
+                            Text("Clear")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                        .background(Color.red.opacity(0.7))
+                        .foregroundColor(.white)
+                        .cornerRadius(6)
+                    }
+                }
+                
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(crypto.statusColor)
+                    Text(crypto.status)
+                        .foregroundColor(crypto.statusColor)
+                    Spacer()
+                    
+                    if crypto.isProcessing {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+                .font(.caption)
+                .padding(10)
+                .background(Color(.lightGray).opacity(0.2))
+                .cornerRadius(4)
                 
                 Spacer()
             }
-            .frame(maxWidth: .infinity)
-            .padding(12)
-            .foregroundColor(.white)
-            .background(color)
-            .cornerRadius(8)
+            .padding(20)
         }
-        .buttonStyle(.plain)
-        .disabled(isLoading)
-        .opacity(isLoading ? 0.7 : 1.0)
+        .frame(minWidth: 500, minHeight: 600)
     }
 }
 
-// MARK: - App Delegate
 @main
 struct CryptoApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentMinSize(ContentView().frame(minWidth: 600, minHeight: 700)))
     }
-}
-
-// Preview
-#Preview {
-    ContentView()
 }
