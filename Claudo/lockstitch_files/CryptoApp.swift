@@ -109,7 +109,7 @@ struct ContentView: View {
                 }
                 
                 TextEditor(text: $crypto.inputText)
-                    .font(.system(size: 13).monospaced())
+                    .font(.system(size: 13))
                     .frame(height: 120)
                     .padding(12)
                     .background(Color(.white))
@@ -149,7 +149,7 @@ struct ContentView: View {
                 }
                 
                 TextEditor(text: .constant(crypto.outputText))
-                    .font(.system(size: 13).monospaced())
+                    .font(.system(size: 13))
                     .frame(height: 120)
                     .padding(12)
                     .background(Color(.white))
