@@ -81,14 +81,14 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 BRIDGE_OBJ="$BUILD_DIR/LockstitchBridge.o"
-echo "Command: clang++ -c LockstitchBridge.mm -o $BRIDGE_OBJ -fPIC -fmodules -std=c++11"
+echo "Command: clang++ -c LockstitchBridge.mm -o $BRIDGE_OBJ -fPIC -fmodules -std=c++17"
 echo ""
 
 clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
     -o "$BRIDGE_OBJ" \
     -fPIC \
     -fmodules \
-    -std=c++11 \
+    -std=c++17 \
     -I"$SCRIPT_DIR"
 
 BRIDGE_EXIT=$?
@@ -112,13 +112,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 LOCKSTITCH_OBJ="$BUILD_DIR/Lockstitch.o"
-echo "Command: clang++ -c Lockstitch.cpp -o $LOCKSTITCH_OBJ -fPIC -std=c++11"
+echo "Command: clang++ -c Lockstitch.cpp -o $LOCKSTITCH_OBJ -fPIC -std=c++17"
 echo ""
 
 clang++ -c "$SCRIPT_DIR/Lockstitch.cpp" \
     -o "$LOCKSTITCH_OBJ" \
     -fPIC \
-    -std=c++11 \
+    -std=c++17 \
     -I"$SCRIPT_DIR"
 
 LOCKSTITCH_EXIT=$?
