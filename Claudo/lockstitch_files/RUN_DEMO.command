@@ -115,8 +115,6 @@ echo ""
 
 # Run Swift compilation, capturing all output
 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
-    "$BRIDGE_OBJ" \
-    "$LOCKSTITCH_OBJ" \
     -o "$APP_EXEC" \
     -framework Cocoa \
     -framework AppKit > "$SWIFT_LOG" 2>&1
