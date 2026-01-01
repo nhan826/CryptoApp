@@ -43,6 +43,7 @@ jobs:
         cp LockstitchBridge.h CryptoApp-ready/
         cp LockstitchBridge.mm CryptoApp-ready/
         cp CryptoApp.swift CryptoApp-ready/
+        cp Info.plist CryptoApp-ready/
         cp RUN_DEMO.command CryptoApp-ready/
         chmod +x CryptoApp-ready/RUN_DEMO.command
         
