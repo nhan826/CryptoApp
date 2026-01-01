@@ -1,6 +1,12 @@
 import SwiftUI
 import Foundation
 
+// Objective-C Bridge declarations
+@objc class LockstitchBridge: NSObject {
+    @objc static func encryptString(_ plaintext: String) -> String? { nil }
+    @objc static func decryptString(_ ciphertext: String) -> String? { nil }
+}
+
 class CryptoEngine: ObservableObject {
     @Published var inputText: String = ""
     @Published var outputText: String = ""
