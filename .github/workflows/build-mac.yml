@@ -59,6 +59,11 @@ jobs:
         name: lockstitch-mac-libraries
         path: Claudo/lockstitch_files/build/
     
+    - name: Setup Xcode Build Environment
+      run: |
+        xcode-select --install || true
+        sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer || true
+    
     - name: Create Xcode Project Structure
       run: |
         mkdir -p CryptoApp-macOS/CryptoApp
