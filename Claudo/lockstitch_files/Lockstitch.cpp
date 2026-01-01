@@ -53,8 +53,30 @@ inline FILE* mac_wfopen(const std::wstring& fname, const wchar_t* mode) {
     return fopen(mfname.c_str(), mmode.c_str());
 }
 
+// Mac/Linux replacement for _wstat (struct stat on Mac/Linux)
+inline int mac_wstat(const std::wstring& fname, struct stat* buf) {
+    std::string mfname = wstring_to_string(fname);
+    return stat(mfname.c_str(), buf);
+}
+
 #define _wfopen mac_wfopen
+#define _wstat mac_wstat
 #define _stat stat
+
+// Helper for ifstream with wstring support
+inline std::ifstream* open_ifstream_wstring(const std::wstring& fname, std::ios_base::openmode mode) {
+    std::string mfname = wstring_to_string(fname);
+    std::ifstream* file = new std::ifstream(mfname, mode);
+    return file;
+}
+
+// Helper for ofstream with wstring support
+inline std::ofstream* open_ofstream_wstring(const std::wstring& fname, std::ios_base::openmode mode) {
+    std::string mfname = wstring_to_string(fname);
+    std::ofstream* file = new std::ofstream(mfname, mode);
+    return file;
+}
+
 #endif
 // ============================================
 
@@ -704,7 +726,9 @@ string Lockstitch::encryptFile(string filename, string pw, int headSize)
 wstring Lockstitch::encryptFile(wstring filename, wstring pw, int headSize)
 {
 	// binary mode is only for switching off newline translation
-	ifstream file(filename, std::ios::binary);
+	// Convert wstring to string for Mac/Linux compatibility
+	std::string fname_str = wstring_to_string(filename);
+	ifstream file(fname_str, std::ios::binary);
 	if (file.fail())
 		return ERROR_FILE_IO_FAILURE_CN;
 
@@ -726,7 +750,9 @@ wstring Lockstitch::encryptFile(wstring filename, wstring pw, int headSize)
 	wstring password = xorString(prefixData_t, (wchar_t*)pw.c_str(), 16);
 
 	filename = filename.substr(0, indx) + L".claudo";
-	ofstream fs(filename, ios::out | ios::binary | ios::trunc);
+	// Convert wstring to string for Mac/Linux compatibility
+	fname_str = wstring_to_string(filename);
+	ofstream fs(fname_str, ios::out | ios::binary | ios::trunc);
 	fs.write((char*)vec.data(), vec.size());
 	fs.write(startLocation.c_str(), startLocation.length());
 	fs.write((char*)extension.c_str(), 16);
@@ -807,7 +833,9 @@ string Lockstitch::decryptFile(string filename, string pw)
 wstring Lockstitch::decryptFile(wstring filename, wstring pw)
 {
 	try {
-		ifstream file(filename, ios::binary);
+		// Convert wstring to string for Mac/Linux compatibility
+		std::string fname_str = wstring_to_string(filename);
+		ifstream file(fname_str, ios::binary);
 		if (file.fail())
 			return ERROR_FILE_IO_FAILURE_CN;
 
@@ -839,7 +867,9 @@ wstring Lockstitch::decryptFile(wstring filename, wstring pw)
 
 		wstring outFilePath = filename.substr(0, lastDot) + L'.' + extension;
 
-		ofstream fs(outFilePath, ios::out | ios::binary | ios::trunc);
+		// Convert wstring to string for Mac/Linux compatibility
+		fname_str = wstring_to_string(outFilePath);
+		ofstream fs(fname_str, ios::out | ios::binary | ios::trunc);
 		fs.write((char*)content.data(), content.size());
 		fs.close();
 
