@@ -24,6 +24,7 @@ jobs:
         clang++ -c ../Lockstitch.cpp -o Lockstitch-x86_64.o -arch x86_64 -fPIC -std=c++17 -stdlib=libc++ -I..
         swiftc ../main.swift ../CryptoApp.swift \
           LockstitchBridge-x86_64.o Lockstitch-x86_64.o \
+          -import-objc-header ../CryptoApp-Bridging-Header.h \
           -parse-as-library \
           -lSystem -lc++ \
           -o CryptoApp-x86_64 \
@@ -37,6 +38,7 @@ jobs:
         clang++ -c ../Lockstitch.cpp -o Lockstitch-arm64.o -arch arm64 -fPIC -std=c++17 -stdlib=libc++ -I..
         swiftc ../main.swift ../CryptoApp.swift \
           LockstitchBridge-arm64.o Lockstitch-arm64.o \
+          -import-objc-header ../CryptoApp-Bridging-Header.h \
           -parse-as-library \
           -lSystem -lc++ \
           -o CryptoApp-arm64 \
