@@ -1,10 +1,8 @@
 import SwiftUI
-import AppKit
 
 class CryptoEngine: ObservableObject {
     @Published var inputText = ""
     @Published var outputText = ""
-    @Published var selectedFilePath: String?
     @Published var isProcessing = false
     
     func encryptString(_ text: String) {
@@ -33,71 +31,6 @@ class CryptoEngine: ObservableObject {
             DispatchQueue.main.async {
                 self.outputText = result ?? "Decryption failed"
                 self.isProcessing = false
-            }
-        }
-    }
-    
-    func encryptFile(at inputPath: String) {
-        let openPanel = NSOpenSavePanel()
-        openPanel.prompt = "Save Encrypted File"
-        openPanel.title = "Select Output Location"
-        openPanel.canCreateDirectories = true
-        
-        if openPanel.runModal() == .OK, let outputURL = openPanel.url {
-            isProcessing = true
-            DispatchQueue.global().async {
-                do {
-                    let fileData = try Data(contentsOf: URL(fileURLWithPath: inputPath))
-                    let fileString = String(data: fileData, encoding: .utf8) ?? 
-                                    fileData.map { String(format: "%02x", $0) }.joined()
-                    
-                    let encryptedHex = LockstitchBridge.encryptString(fileString) ?? ""
-                    
-                    if let encryptedData = encryptedHex.data(using: .utf8) {
-                        try encryptedData.write(to: outputURL)
-                        DispatchQueue.main.async {
-                            self.outputText = "File encrypted successfully: \(outputURL.lastPathComponent)"
-                            self.isProcessing = false
-                        }
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        self.outputText = "File encryption failed: \(error.localizedDescription)"
-                        self.isProcessing = false
-                    }
-                }
-            }
-        }
-    }
-    
-    func decryptFile(at inputPath: String) {
-        let openPanel = NSOpenSavePanel()
-        openPanel.prompt = "Save Decrypted File"
-        openPanel.title = "Select Output Location"
-        openPanel.canCreateDirectories = true
-        
-        if openPanel.runModal() == .OK, let outputURL = openPanel.url {
-            isProcessing = true
-            DispatchQueue.global().async {
-                do {
-                    let fileData = try Data(contentsOf: URL(fileURLWithPath: inputPath))
-                    let fileString = String(data: fileData, encoding: .utf8) ?? ""
-                    
-                    let decryptedStr = LockstitchBridge.decryptString(fileString) ?? ""
-                    
-                    if let decryptedData = decryptedStr.data(using: .utf8) {
-                        try decryptedData.write(to: outputURL)
-                        DispatchQueue.main.async {
-                            self.outputText = "File decrypted successfully: \(outputURL.lastPathComponent)"
-                            self.isProcessing = false
-                        }
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        self.outputText = "File decryption failed: \(error.localizedDescription)"
-                        self.isProcessing = false
-                    }
-                }
             }
         }
     }
@@ -208,7 +141,6 @@ struct ContentView: View {
                 Button(action: {
                     engine.inputText = ""
                     engine.outputText = ""
-                    engine.selectedFilePath = nil
                 }) {
                     Text("🗑 Clear").frame(maxWidth: .infinity)
                 }
@@ -228,33 +160,7 @@ struct ContentView: View {
             Spacer()
         }
         .padding(20)
-        .frame(minWidth: 600, minHeight: 700)
-    }
-    
-    private func selectAndEncryptFile() {
-        let openPanel = NSOpenPanel()
-        openPanel.prompt = "Select File to Encrypt"
-        openPanel.canChooseFiles = true
-        openPanel.canChooseDirectories = false
-        openPanel.allowsMultipleSelection = false
-        
-        if openPanel.runModal() == .OK, let url = openPanel.url {
-            engine.selectedFilePath = url.path
-            engine.encryptFile(at: url.path)
-        }
-    }
-    
-    private func selectAndDecryptFile() {
-        let openPanel = NSOpenPanel()
-        openPanel.prompt = "Select File to Decrypt"
-        openPanel.canChooseFiles = true
-        openPanel.canChooseDirectories = false
-        openPanel.allowsMultipleSelection = false
-        
-        if openPanel.runModal() == .OK, let url = openPanel.url {
-            engine.selectedFilePath = url.path
-            engine.decryptFile(at: url.path)
-        }
+        .frame(minWidth: 600, minHeight: 500)
     }
 }
 
