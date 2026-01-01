@@ -5,6 +5,7 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$SCRIPT_DIR/build"
+APP_DIR="$SCRIPT_DIR/build_app"
 APP_NAME="CryptoApp"
 
 echo "🔧 Building CryptoApp with Lockstitch backend..."
@@ -22,41 +23,54 @@ if ! command -v cmake &> /dev/null; then
     brew install cmake
 fi
 
-# Build everything with CMake
-echo "📦 Building library and app..."
+# Step 1: Build the C++ library with CMake
+echo "📦 Building Lockstitch library..."
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
-# Configure
-cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release .. 2>&1 | grep -E "(error|warning|Built target)" || true
+if ! cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release ..; then
+    echo "❌ CMake configuration failed"
+    cd "$SCRIPT_DIR"
+    read -p "Press Enter to close..."
+    exit 1
+fi
 
-# Build
-if ! make -j4 2>&1; then
-    echo ""
-    echo "❌ Build failed"
+if ! make -j4; then
+    echo "❌ Library build failed"
     cd "$SCRIPT_DIR"
     read -p "Press Enter to close..."
     exit 1
 fi
 
 cd "$SCRIPT_DIR"
+echo "✅ Library built"
 
-# Check if app was built
-if [ ! -f "$BUILD_DIR/$APP_NAME" ]; then
-    echo "❌ App executable not found"
+# Step 2: Compile Swift app
+echo ""
+echo "🔨 Compiling Swift app..."
+mkdir -p "$APP_DIR"
+
+if [ ! -f "$SCRIPT_DIR/CryptoApp.swift" ]; then
+    echo "❌ Error: CryptoApp.swift not found"
     read -p "Press Enter to close..."
     exit 1
 fi
 
-echo ""
-echo "✅ Build successful!"
+if ! swiftc "$SCRIPT_DIR/CryptoApp.swift" -o "$APP_DIR/$APP_NAME" 2>&1; then
+    echo "❌ Swift compilation failed"
+    read -p "Press Enter to close..."
+    exit 1
+fi
+
+echo "✅ App compiled"
+
+# Step 3: Run it!
 echo ""
 echo "🚀 Launching CryptoApp..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Run the app
-"$BUILD_DIR/$APP_NAME"
+"$APP_DIR/$APP_NAME"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
