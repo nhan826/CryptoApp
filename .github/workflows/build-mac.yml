@@ -22,9 +22,8 @@ jobs:
         echo "🔨 Building for x86_64 (Intel)..."
         clang++ -c ../LockstitchBridge.mm -o LockstitchBridge-x86_64.o -arch x86_64 -fPIC -fmodules -std=c++17 -stdlib=libc++ -I..
         clang++ -c ../Lockstitch.cpp -o Lockstitch-x86_64.o -arch x86_64 -fPIC -std=c++17 -stdlib=libc++ -I..
-        swiftc -c ../main.swift -o main-x86_64.o -target x86_64-apple-macos11
-        swiftc -c ../CryptoApp.swift -o CryptoApp-x86_64-obj.o -target x86_64-apple-macos11
-        clang++ -arch x86_64 main-x86_64.o CryptoApp-x86_64-obj.o LockstitchBridge-x86_64.o Lockstitch-x86_64.o \
+        swiftc -c ../main.swift ../CryptoApp.swift -o Swift-x86_64.o -target x86_64-apple-macos11 -parse-as-library
+        clang++ -arch x86_64 Swift-x86_64.o LockstitchBridge-x86_64.o Lockstitch-x86_64.o \
           -lSystem -lc++ -lc++abi -lobjc -lSwiftCore -lSwiftFoundation -lSwiftDispatch \
           -framework Cocoa -framework AppKit \
           -o CryptoApp-x86_64
@@ -34,9 +33,8 @@ jobs:
         echo "🔨 Building for arm64 (Apple Silicon)..."
         clang++ -c ../LockstitchBridge.mm -o LockstitchBridge-arm64.o -arch arm64 -fPIC -fmodules -std=c++17 -stdlib=libc++ -I..
         clang++ -c ../Lockstitch.cpp -o Lockstitch-arm64.o -arch arm64 -fPIC -std=c++17 -stdlib=libc++ -I..
-        swiftc -c ../main.swift -o main-arm64.o -target arm64-apple-macos11
-        swiftc -c ../CryptoApp.swift -o CryptoApp-arm64-obj.o -target arm64-apple-macos11
-        clang++ -arch arm64 main-arm64.o CryptoApp-arm64-obj.o LockstitchBridge-arm64.o Lockstitch-arm64.o \
+        swiftc -c ../main.swift ../CryptoApp.swift -o Swift-arm64.o -target arm64-apple-macos11 -parse-as-library
+        clang++ -arch arm64 Swift-arm64.o LockstitchBridge-arm64.o Lockstitch-arm64.o \
           -lSystem -lc++ -lc++abi -lobjc -lSwiftCore -lSwiftFoundation -lSwiftDispatch \
           -framework Cocoa -framework AppKit \
           -o CryptoApp-arm64
