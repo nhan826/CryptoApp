@@ -1,67 +1,150 @@
 #!/bin/bash
 
 # CryptoApp - Compile and Run
-# Pre-built Lockstitch library included
-# Just compiles Swift app and launches it
+# Verbose diagnostic version
 
-set -e
-
+# Do NOT exit on error - we want to see all output
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$SCRIPT_DIR/build_output"
 APP_BUNDLE="$SCRIPT_DIR/CryptoApp.app"
 APP_EXEC="$APP_BUNDLE/Contents/MacOS/CryptoApp"
 
-echo "🔒 CryptoApp"
+clear
+echo "🔒 CryptoApp Build Script"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "Working directory: $SCRIPT_DIR"
 echo ""
 
 # Check required files
-if [ ! -f "$SCRIPT_DIR/liblockstitch.a" ]; then
-    echo "❌ Error: Pre-built library not found!"
-    echo "   Expected: $SCRIPT_DIR/liblockstitch.a"
-    echo "   Make sure you extracted the artifact correctly."
+echo "📋 Checking required files..."
+echo ""
+
+MISSING=0
+
+if [ -f "$SCRIPT_DIR/CryptoApp.swift" ]; then
+    echo "✅ CryptoApp.swift found"
+else
+    echo "❌ CryptoApp.swift NOT FOUND"
+    MISSING=1
+fi
+
+if [ -f "$SCRIPT_DIR/LockstitchBridge.h" ]; then
+    echo "✅ LockstitchBridge.h found"
+else
+    echo "❌ LockstitchBridge.h NOT FOUND"
+    MISSING=1
+fi
+
+if [ -f "$SCRIPT_DIR/LockstitchBridge.mm" ]; then
+    echo "✅ LockstitchBridge.mm found"
+else
+    echo "❌ LockstitchBridge.mm NOT FOUND"
+    MISSING=1
+fi
+
+if [ -f "$SCRIPT_DIR/Lockstitch.h" ]; then
+    echo "✅ Lockstitch.h found"
+else
+    echo "❌ Lockstitch.h NOT FOUND"
+    MISSING=1
+fi
+
+if [ -f "$SCRIPT_DIR/Lockstitch.cpp" ]; then
+    echo "✅ Lockstitch.cpp found"
+else
+    echo "❌ Lockstitch.cpp NOT FOUND"
+    MISSING=1
+fi
+
+echo ""
+
+if [ $MISSING -eq 1 ]; then
+    echo "❌ Missing required files!"
+    echo ""
+    echo "Files in current directory:"
+    ls -la "$SCRIPT_DIR"
+    echo ""
     read -p "Press Enter to close..."
     exit 1
 fi
 
-if [ ! -f "$SCRIPT_DIR/CryptoApp.swift" ]; then
-    echo "❌ Error: CryptoApp.swift not found!"
-    read -p "Press Enter to close..."
-    exit 1
-fi
+echo "📦 All files present. Starting build..."
+echo ""
 
-if [ ! -f "$SCRIPT_DIR/LockstitchBridge.h" ]; then
-    echo "❌ Error: LockstitchBridge.h not found!"
-    read -p "Press Enter to close..."
-    exit 1
-fi
-
-echo "📦 Preparing to build..."
 mkdir -p "$BUILD_DIR"
 
 # Step 1: Compile Objective-C++ bridge
-echo "⚙️  Compiling bridge..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "STEP 1: Compiling Objective-C++ Bridge"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
 BRIDGE_OBJ="$BUILD_DIR/LockstitchBridge.o"
-if ! clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
+echo "Command: clang++ -c LockstitchBridge.mm -o $BRIDGE_OBJ -fPIC -fmodules -std=c++11"
+echo ""
+
+clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
     -o "$BRIDGE_OBJ" \
     -fPIC \
     -fmodules \
     -std=c++11 \
-    -I"$SCRIPT_DIR" 2>&1; then
-    echo "❌ Bridge compilation failed!"
-    echo "Run this in Terminal for full error details:"
-    echo "cd $SCRIPT_DIR && clang++ -c LockstitchBridge.mm -o build_output/LockstitchBridge.o -fPIC -fmodules -std=c++11 -I."
+    -I"$SCRIPT_DIR"
+
+BRIDGE_EXIT=$?
+echo ""
+echo "Bridge compilation exit code: $BRIDGE_EXIT"
+
+if [ ! -f "$BRIDGE_OBJ" ]; then
+    echo "❌ Bridge object file not created!"
     read -p "Press Enter to close..."
     exit 1
 fi
 
-# Step 2: Compile Swift app and link with library
-echo "🔨 Compiling app..."
+ls -lh "$BRIDGE_OBJ"
+echo "✅ Bridge compiled successfully"
+echo ""
+
+# Step 2: Compile Lockstitch.cpp
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "STEP 2: Compiling Lockstitch.cpp"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+LOCKSTITCH_OBJ="$BUILD_DIR/Lockstitch.o"
+echo "Command: clang++ -c Lockstitch.cpp -o $LOCKSTITCH_OBJ -fPIC -std=c++11"
+echo ""
+
+clang++ -c "$SCRIPT_DIR/Lockstitch.cpp" \
+    -o "$LOCKSTITCH_OBJ" \
+    -fPIC \
+    -std=c++11 \
+    -I"$SCRIPT_DIR"
+
+LOCKSTITCH_EXIT=$?
+echo ""
+echo "Lockstitch compilation exit code: $LOCKSTITCH_EXIT"
+
+if [ ! -f "$LOCKSTITCH_OBJ" ]; then
+    echo "❌ Lockstitch object file not created!"
+    read -p "Press Enter to close..."
+    exit 1
+fi
+
+ls -lh "$LOCKSTITCH_OBJ"
+echo "✅ Lockstitch compiled successfully"
+echo ""
+
+# Step 3: Create app bundle structure
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "STEP 3: Creating App Bundle"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
 
-# Create Info.plist
 cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -88,75 +171,76 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 </dict>
 </PLIST>
 
-# Compile with pre-built library
-echo ""
-echo "Details: Compiling and linking..."
+echo "✅ App bundle structure created"
 echo ""
 
-# Also compile Lockstitch.cpp alongside the bridge
-echo "Compiling Lockstitch.cpp..."
-LOCKSTITCH_OBJ="$BUILD_DIR/Lockstitch.o"
-clang++ -c "$SCRIPT_DIR/Lockstitch.cpp" \
-    -o "$LOCKSTITCH_OBJ" \
-    -fPIC \
-    -std=c++11 \
-    -I"$SCRIPT_DIR" 2>&1
+# Step 4: Compile and link Swift app
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "STEP 4: Compiling Swift App"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 
-echo "Linking Swift app..."
+echo "Command: swiftc CryptoApp.swift -import-objc-header LockstitchBridge.h ..."
+echo "Linking with: $BRIDGE_OBJ and $LOCKSTITCH_OBJ"
+echo ""
+
 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
     "$BRIDGE_OBJ" \
     "$LOCKSTITCH_OBJ" \
     -o "$APP_EXEC" \
     -framework Cocoa \
-    -framework AppKit \
-    -suppress-warnings
+    -framework AppKit 2>&1
 
 SWIFT_EXIT=$?
+echo ""
+echo "Swift compilation exit code: $SWIFT_EXIT"
 
-echo "Compilation exit code: $SWIFT_EXIT"
-echo "Checking for executable at: $APP_EXEC"
-ls -la "$APP_EXEC" 2>&1 || echo "Executable not found!"
-
-if [ $SWIFT_EXIT -ne 0 ] || [ ! -f "$APP_EXEC" ]; then
+if [ -f "$APP_EXEC" ]; then
+    ls -lh "$APP_EXEC"
+    echo "✅ Executable created successfully"
+else
+    echo "❌ Executable NOT created"
     echo ""
-    echo "❌ App compilation failed"
+    echo "Check build directory:"
+    ls -la "$BUILD_DIR"
     echo ""
-    echo "Debug info:"
-    echo "Build directory contents:"
-    ls -la "$BUILD_DIR" 2>&1 || echo "Build dir not found"
-    echo ""
-    echo "Source files check:"
-    ls -la "$SCRIPT_DIR"/*.{swift,h,cpp} 2>&1 || echo "Missing source files"
-    echo ""
-    echo "Try running manually for details:"
-    echo "cd $SCRIPT_DIR && swiftc CryptoApp.swift -import-objc-header LockstitchBridge.h build_output/LockstitchBridge.o build_output/Lockstitch.o -o build_output/CryptoApp -framework Cocoa -framework AppKit"
     read -p "Press Enter to close..."
     exit 1
 fi
 
-if [ ! -f "$APP_EXEC" ]; then
-    echo "❌ Compilation failed"
-    read -p "Press Enter to close..."
-    exit 1
-fi
+echo ""
 
 # Make executable
 chmod +x "$APP_EXEC"
-
-echo "✅ Build complete!"
+echo "✅ Permissions set"
 echo ""
-echo "🚀 Launching..."
+
+# Final check
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "✅ Build Complete!"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "App bundle: $APP_BUNDLE"
+echo ""
+
+# Count files in app
+FILE_COUNT=$(find "$APP_BUNDLE" -type f | wc -l)
+echo "Files in app bundle: $FILE_COUNT"
+
+echo ""
+echo "🚀 Launching CryptoApp..."
 echo ""
 
 open "$APP_BUNDLE"
 
+sleep 1
+
 echo ""
-echo "✅ CryptoApp is ready!"
+echo "✅ CryptoApp launched!"
 echo ""
-echo "📦 To share this app:"
-echo "   Zip CryptoApp.app and share with others"
-echo "   They can unzip and run it (no build needed)"
+echo "If the app didn't appear, check:"
+echo "1. Applications folder (may have opened there)"
+echo "2. Dock (may be minimized)"
 echo ""
 read -p "Press Enter to close..."
