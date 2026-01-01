@@ -12,10 +12,12 @@ jobs:
     runs-on: macos-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
-    - name: Install CMake
-      run: brew install cmake
+    - name: Install Dependencies
+      run: |
+        brew install cmake
+        xcode-select --install || true
     
     - name: Create build directory
       run: mkdir -p Claudo/lockstitch_files/build
@@ -23,20 +25,25 @@ jobs:
     - name: Run CMake
       run: |
         cd Claudo/lockstitch_files/build
-        cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" ..
+        cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release ..
     
     - name: Build Library
       run: |
         cd Claudo/lockstitch_files/build
-        make
+        make -j4
+    
+    - name: Check Build Output
+      run: |
+        echo "=== Build Output ==="
+        ls -la Claudo/lockstitch_files/build/
+        file Claudo/lockstitch_files/build/liblockstitch.a || echo "Library file not found"
     
     - name: Upload Library Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: lockstitch-mac-libraries
-        path: |
-          Claudo/lockstitch_files/build/liblockstitch.a
-          Claudo/lockstitch_files/build/liblockstitch.dylib
+        path: Claudo/lockstitch_files/build/liblockstitch.a
+        if-no-files-found: warn
         retention-days: 30
 
   build-app:
@@ -44,12 +51,13 @@ jobs:
     needs: build-library
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Download Library Artifacts
       uses: actions/download-artifact@v4
       with:
         name: lockstitch-mac-libraries
+        path: Claudo/lockstitch_files/build/
     
     - name: Create Xcode Project Structure
       run: |
@@ -191,7 +199,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Download All Artifacts
       uses: actions/download-artifact@v4
