@@ -1,4 +1,4 @@
-name: Build CryptoApp for Mac
+name: Build CryptoApp - Complete App Bundle
 
 on:
   push:
@@ -12,48 +12,42 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Install CMake
-      run: |
-        brew install cmake
-        xcode-select --install || true
-    
-    - name: Build Lockstitch Library
+    - name: Build Complete App Bundle
       run: |
         cd Claudo/lockstitch_files
-        mkdir -p build
-        cd build
-        cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release ..
-        make -j4
-        echo "=== Library Built ==="
-        ls -lh liblockstitch.a
-    
-    - name: Create App Package
-      run: |
-        cd Claudo/lockstitch_files
-        mkdir -p CryptoApp-ready
+        mkdir -p build_final
+        cd build_final
         
-        # Copy everything needed
-        cp build/liblockstitch.a CryptoApp-ready/
-        cp CMakeLists.txt CryptoApp-ready/
-        cp Lockstitch.h CryptoApp-ready/
-        cp Lockstitch.cpp CryptoApp-ready/
-        cp pch.h CryptoApp-ready/
-        cp pch.cpp CryptoApp-ready/
-        cp framework.h CryptoApp-ready/
-        cp LockstitchBridge.h CryptoApp-ready/
-        cp LockstitchBridge.mm CryptoApp-ready/
-        cp main.swift CryptoApp-ready/
-        cp CryptoApp.swift CryptoApp-ready/
-        cp Info.plist CryptoApp-ready/
-        cp RUN_DEMO.command CryptoApp-ready/
-        chmod +x CryptoApp-ready/RUN_DEMO.command
+        # Compile C++ bridge
+        clang++ -c ../LockstitchBridge.mm -o LockstitchBridge.o -fPIC -fmodules -std=c++17 -I..
+        echo "✅ Bridge compiled"
         
-        echo "=== Package Contents ==="
-        ls -lh CryptoApp-ready/
+        # Compile Lockstitch library
+        clang++ -c ../Lockstitch.cpp -o Lockstitch.o -fPIC -std=c++17 -I..
+        echo "✅ Lockstitch compiled"
+        
+        # Compile Swift to single executable with C++ linking
+        swiftc ../main.swift ../CryptoApp.swift \
+          LockstitchBridge.o Lockstitch.o \
+          -o CryptoApp \
+          -framework Cocoa \
+          -framework AppKit
+        echo "✅ Swift compiled"
+        
+        # Create app bundle structure
+        mkdir -p CryptoApp.app/Contents/MacOS
+        mkdir -p CryptoApp.app/Contents/Resources
+        mv CryptoApp CryptoApp.app/Contents/MacOS/
+        cp ../Info.plist CryptoApp.app/Contents/
+        chmod +x CryptoApp.app/Contents/MacOS/CryptoApp
+        
+        echo "✅ App bundle created"
+        ls -lh CryptoApp.app/Contents/MacOS/CryptoApp
     
-    - name: Upload App Package
+    - name: Upload App Bundle
       uses: actions/upload-artifact@v4
       with:
-        name: CryptoApp-macOS-ready
-        path: Claudo/lockstitch_files/CryptoApp-ready/
+        name: CryptoApp-Ready-to-Run
+        path: Claudo/lockstitch_files/build_final/CryptoApp.app/
         retention-days: 30
+
