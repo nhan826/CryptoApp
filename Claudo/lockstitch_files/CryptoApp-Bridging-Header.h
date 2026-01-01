@@ -6,6 +6,7 @@
 #ifndef CryptoApp_Bridging_Header_h
 #define CryptoApp_Bridging_Header_h
 
+#import <AppKit/AppKit.h>
 #import "LockstitchBridge.h"
 
 #endif /* CryptoApp_Bridging_Header_h */
