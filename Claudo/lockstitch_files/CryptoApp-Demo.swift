@@ -1,15 +1,8 @@
-//
-//  main.swift
-//  CryptoApp - Standalone launcher
-//
-//  Simple app that you can build and run directly
-
 import Cocoa
 
 // Simple encryption wrapper (no C++ dependency for demo)
 class SimpleEncryption {
     static func encrypt(_ text: String) -> String {
-        // Simple XOR for demo (not for production!)
         let key = "CRYPTOKEY"
         var result = ""
         let chars = Array(text)
@@ -24,14 +17,15 @@ class SimpleEncryption {
     }
     
     static func decrypt(_ text: String) -> String {
-        // Reverse the XOR
         let key = "CRYPTOKEY"
         var result = ""
         let keyChars = Array(key)
         
         var i = 0
         while i < text.count {
-            let hexPair = String(text[text.index(text.startIndex, offsetBy: i)..<text.index(text.startIndex, offsetBy: i+2)])
+            let start = text.index(text.startIndex, offsetBy: i)
+            let end = text.index(text.startIndex, offsetBy: min(i+2, text.count))
+            let hexPair = String(text[start..<end])
             if let byte = UInt32(hexPair, radix: 16) {
                 let keyChar = keyChars[(i/2) % keyChars.count]
                 let decrypted = UInt8(byte ^ UInt32(keyChar.asciiValue ?? 0))
@@ -43,46 +37,35 @@ class SimpleEncryption {
     }
 }
 
-// Main App Delegate
-@main
+// App Delegate
 class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
+    var inputTextView: NSTextView?
+    var outputTextView: NSTextView?
+    var statusLabel: NSTextField?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Create window
-        let window = NSWindow(
-            contentRect: NSRect(x: 100, y: 100, width: 900, height: 700),
+        window = NSWindow(
+            contentRect: NSRect(x: 100, y: 100, width: 800, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         
-        window.title = "CryptoApp - Text Encryption Demo"
-        window.center()
-        window.setFrameAutosaveName("CryptoApp")
+        window?.title = "🔐 CryptoApp - Text Encryption Demo"
+        window?.center()
+        window?.setFrameAutosaveName("CryptoApp")
         
-        // Create main view controller
-        let viewController = createMainViewController()
-        window.contentViewController = viewController
-        
-        self.window = window
-        window.makeKeyAndOrderFront(nil)
-    }
-    
-    func createMainViewController() -> NSViewController {
         let vc = NSViewController()
         vc.view = NSView()
-        vc.view.wantsLayer = true
-        vc.view.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         
-        // Main stack
         let stack = NSStackView()
         stack.orientation = .vertical
-        stack.spacing = 16
+        stack.spacing = 12
         stack.edgeInsets = NSEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         stack.translatesAutoresizingMaskIntoConstraints = false
-        
         vc.view.addSubview(stack)
+        
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: vc.view.topAnchor),
             stack.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
@@ -92,156 +75,114 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Title
         let title = NSTextField()
-        title.stringValue = "🔐 CryptoApp - Simple Text Encryption"
-        title.font = NSFont.systemFont(ofSize: 18, weight: .bold)
+        title.stringValue = "Simple Text Encryption Demo"
+        title.font = NSFont.systemFont(ofSize: 16, weight: .bold)
         title.isEditable = false
         title.isBordered = false
         title.backgroundColor = .clear
         stack.addArrangedSubview(title)
         
-        // Input section
+        // Input label
         let inputLabel = NSTextField()
         inputLabel.stringValue = "Input Text:"
-        inputLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
         inputLabel.isEditable = false
         inputLabel.isBordered = false
         inputLabel.backgroundColor = .clear
         stack.addArrangedSubview(inputLabel)
         
-        let inputText = NSTextView()
-        inputText.font = NSFont.systemFont(ofSize: 12)
+        // Input text view
+        inputTextView = NSTextView()
+        inputTextView?.font = NSFont.systemFont(ofSize: 12)
         let inputScroll = NSScrollView()
-        inputScroll.documentView = inputText
-        inputScroll.heightAnchor.constraint(equalToConstant: 120).isActive = true
+        inputScroll.documentView = inputTextView
+        inputScroll.heightAnchor.constraint(equalToConstant: 100).isActive = true
         stack.addArrangedSubview(inputScroll)
         
-        // Output section
+        // Output label
         let outputLabel = NSTextField()
         outputLabel.stringValue = "Output Text:"
-        outputLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
         outputLabel.isEditable = false
         outputLabel.isBordered = false
         outputLabel.backgroundColor = .clear
         stack.addArrangedSubview(outputLabel)
         
-        let outputText = NSTextView()
-        outputText.font = NSFont.systemFont(ofSize: 12)
-        outputText.isEditable = false
+        // Output text view
+        outputTextView = NSTextView()
+        outputTextView?.font = NSFont.systemFont(ofSize: 12)
+        outputTextView?.isEditable = false
         let outputScroll = NSScrollView()
-        outputScroll.documentView = outputText
-        outputScroll.heightAnchor.constraint(equalToConstant: 120).isActive = true
+        outputScroll.documentView = outputTextView
+        outputScroll.heightAnchor.constraint(equalToConstant: 100).isActive = true
         stack.addArrangedSubview(outputScroll)
         
         // Buttons
         let buttonStack = NSStackView()
         buttonStack.orientation = .horizontal
-        buttonStack.spacing = 10
-        buttonStack.distribution = .equalSpacing
+        buttonStack.spacing = 8
         
-        let encryptBtn = NSButton(title: "🔒 Encrypt", target: nil, action: nil)
+        let encryptBtn = NSButton(title: "Encrypt", target: self, action: #selector(encrypt))
         encryptBtn.bezelStyle = .rounded
-        encryptBtn.target = nil
-        encryptBtn.action = #selector(NSApplication.shared.delegate as! AppDelegate).self
         
-        encryptBtn.target = self
-        encryptBtn.action = #selector(encryptAction(sender:))
-        
-        let decryptBtn = NSButton(title: "🔓 Decrypt", target: nil, action: nil)
+        let decryptBtn = NSButton(title: "Decrypt", target: self, action: #selector(decrypt))
         decryptBtn.bezelStyle = .rounded
-        decryptBtn.target = self
-        decryptBtn.action = #selector(decryptAction(sender:))
         
-        let clearBtn = NSButton(title: "Clear", target: nil, action: nil)
+        let clearBtn = NSButton(title: "Clear", target: self, action: #selector(clear))
         clearBtn.bezelStyle = .rounded
-        clearBtn.target = self
-        clearBtn.action = #selector(clearAction(sender:))
-        
-        // Store references
-        encryptBtn.tag = 1
-        decryptBtn.tag = 2
-        clearBtn.tag = 3
-        inputText.tag = 10
-        outputText.tag = 11
         
         buttonStack.addArrangedSubview(encryptBtn)
         buttonStack.addArrangedSubview(decryptBtn)
         buttonStack.addArrangedSubview(clearBtn)
-        
         stack.addArrangedSubview(buttonStack)
         
         // Status label
-        let statusLabel = NSTextField()
-        statusLabel.stringValue = "Ready"
-        statusLabel.isEditable = false
-        statusLabel.isBordered = false
-        statusLabel.backgroundColor = .clear
-        statusLabel.textColor = .systemGreen
-        statusLabel.tag = 12
-        stack.addArrangedSubview(statusLabel)
+        statusLabel = NSTextField()
+        statusLabel?.stringValue = "Ready"
+        statusLabel?.isEditable = false
+        statusLabel?.isBordered = false
+        statusLabel?.backgroundColor = .clear
+        statusLabel?.textColor = .systemGreen
+        if let status = statusLabel {
+            stack.addArrangedSubview(status)
+        }
         
-        // Info label
-        let infoLabel = NSTextField()
-        infoLabel.stringValue = "Note: This is a demo using simple XOR encryption. Production app will use the full Lockstitch library."
-        infoLabel.font = NSFont.systemFont(ofSize: 11)
-        infoLabel.isEditable = false
-        infoLabel.isBordered = false
-        infoLabel.backgroundColor = .clear
-        infoLabel.textColor = .systemGray
-        stack.addArrangedSubview(infoLabel)
-        
-        return vc
+        window?.contentViewController = vc
+        window?.makeKeyAndOrderFront(nil)
     }
     
-    @objc func encryptAction(sender: NSButton) {
-        guard let view = window?.contentViewController?.view else { return }
-        guard let inputTextView = view.viewWithTag(10) as? NSTextView else { return }
-        guard let outputTextView = view.viewWithTag(11) as? NSTextView else { return }
-        guard let statusLabel = view.viewWithTag(12) as? NSTextField else { return }
-        
-        let text = inputTextView.string
-        if text.isEmpty {
-            statusLabel.stringValue = "❌ Error: No text to encrypt"
-            statusLabel.textColor = .systemRed
+    @objc func encrypt() {
+        guard let input = inputTextView?.string, !input.isEmpty else {
+            statusLabel?.stringValue = "❌ No text to encrypt"
+            statusLabel?.textColor = .systemRed
             return
         }
         
-        let encrypted = SimpleEncryption.encrypt(text)
-        outputTextView.string = encrypted
-        statusLabel.stringValue = "✅ Text encrypted successfully"
-        statusLabel.textColor = .systemGreen
+        let encrypted = SimpleEncryption.encrypt(input)
+        outputTextView?.string = encrypted
+        statusLabel?.stringValue = "✅ Encrypted"
+        statusLabel?.textColor = .systemGreen
     }
     
-    @objc func decryptAction(sender: NSButton) {
-        guard let view = window?.contentViewController?.view else { return }
-        guard let inputTextView = view.viewWithTag(10) as? NSTextView else { return }
-        guard let outputTextView = view.viewWithTag(11) as? NSTextView else { return }
-        guard let statusLabel = view.viewWithTag(12) as? NSTextField else { return }
-        
-        let text = inputTextView.string
-        if text.isEmpty {
-            statusLabel.stringValue = "❌ Error: No text to decrypt"
-            statusLabel.textColor = .systemRed
+    @objc func decrypt() {
+        guard let input = inputTextView?.string, !input.isEmpty else {
+            statusLabel?.stringValue = "❌ No text to decrypt"
+            statusLabel?.textColor = .systemRed
             return
         }
         
-        let decrypted = SimpleEncryption.decrypt(text)
-        outputTextView.string = decrypted
-        statusLabel.stringValue = "✅ Text decrypted successfully"
-        statusLabel.textColor = .systemGreen
+        let decrypted = SimpleEncryption.decrypt(input)
+        outputTextView?.string = decrypted
+        statusLabel?.stringValue = "✅ Decrypted"
+        statusLabel?.textColor = .systemGreen
     }
     
-    @objc func clearAction(sender: NSButton) {
-        guard let view = window?.contentViewController?.view else { return }
-        guard let inputTextView = view.viewWithTag(10) as? NSTextView else { return }
-        guard let outputTextView = view.viewWithTag(11) as? NSTextView else { return }
-        guard let statusLabel = view.viewWithTag(12) as? NSTextField else { return }
-        
-        inputTextView.string = ""
-        outputTextView.string = ""
-        statusLabel.stringValue = "Cleared"
-        statusLabel.textColor = .systemGreen
+    @objc func clear() {
+        inputTextView?.string = ""
+        outputTextView?.string = ""
+        statusLabel?.stringValue = "Cleared"
+        statusLabel?.textColor = .systemGreen
     }
 }
 
-NSApplication.shared.delegate = AppDelegate()
+let delegate = AppDelegate()
+NSApplication.shared.delegate = delegate
 NSApplication.shared.run()
