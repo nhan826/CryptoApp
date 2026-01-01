@@ -93,35 +93,30 @@ echo ""
 echo "Details: Linking with liblockstitch.a..."
 echo ""
 
-SWIFT_OUT=$(mktemp)
-if ! swiftc "$SCRIPT_DIR/CryptoApp.swift" \
+swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
     "$BRIDGE_OBJ" \
     "$SCRIPT_DIR/liblockstitch.a" \
     -o "$APP_EXEC" \
     -framework Cocoa \
     -framework AppKit \
-    -suppress-warnings 2>&1 | tee "$SWIFT_OUT"; then
+    -suppress-warnings
+
+SWIFT_EXIT=$?
+
+if [ $SWIFT_EXIT -ne 0 ]; then
     echo ""
-    echo "❌ App compilation/linking failed"
+    echo "❌ App compilation failed (exit code: $SWIFT_EXIT)"
     echo ""
-    echo "Full error output:"
-    cat "$SWIFT_OUT"
+    echo "Files in directory:"
+    ls -la "$SCRIPT_DIR" | grep -E "\.(swift|h|mm|a)$"
     echo ""
-    echo "Troubleshooting:"
-    echo "1. Make sure all source files are in: $SCRIPT_DIR"
-    echo "2. Files needed:"
-    echo "   - CryptoApp.swift"
-    echo "   - LockstitchBridge.h"
-    echo "   - LockstitchBridge.mm"
-    echo "   - Lockstitch.h"
-    echo "   - Lockstitch.cpp"
-    echo "   - liblockstitch.a"
+    echo "Try running manually in Terminal:"
+    echo "cd $SCRIPT_DIR"
+    echo "swiftc CryptoApp.swift -import-objc-header LockstitchBridge.h build_output/LockstitchBridge.o liblockstitch.a -o build_output/CryptoApp -framework Cocoa -framework AppKit"
     read -p "Press Enter to close..."
     exit 1
 fi
-
-rm -f "$SWIFT_OUT"
 
 if [ ! -f "$APP_EXEC" ]; then
     echo "❌ Compilation failed"
