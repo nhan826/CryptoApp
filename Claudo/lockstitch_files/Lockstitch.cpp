@@ -25,6 +25,39 @@
 
 #endif
 
+// ============================================
+// Mac/Linux Compatibility Layer
+// ============================================
+#if defined(__APPLE__) || defined(__linux__)
+#include <sys/stat.h>
+
+// Helper function: Convert wstring to string (for file paths on Mac/Linux)
+inline std::string wstring_to_string(const std::wstring& wstr) {
+    if (wstr.empty()) return std::string();
+    std::string result;
+    for (wchar_t c : wstr) {
+        result += (char)(unsigned char)c;
+    }
+    return result;
+}
+
+// Mac/Linux replacement for _wfopen
+inline FILE* mac_wfopen(const std::wstring& fname, const wchar_t* mode) {
+    std::string mfname = wstring_to_string(fname);
+    std::string mmode;
+    if (mode) {
+        for (size_t i = 0; mode[i] != L'\0'; ++i) {
+            mmode += (char)mode[i];
+        }
+    }
+    return fopen(mfname.c_str(), mmode.c_str());
+}
+
+#define _wfopen mac_wfopen
+#define _stat stat
+#endif
+// ============================================
+
 namespace fs = std::filesystem;
 
 #define MUL_DIV_DATA_SIZE 40000
