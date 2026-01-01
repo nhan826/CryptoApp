@@ -16,7 +16,7 @@ class CryptoEngine: ObservableObject {
         
         isProcessing = true
         DispatchQueue.global().async {
-            let encrypted = LockstitchBridge.encryptString(self.inputText)
+            let encrypted = LockstitchBridge.encryptString(self.inputText) ?? ""
             
             DispatchQueue.main.async {
                 self.outputText = encrypted
@@ -34,7 +34,7 @@ class CryptoEngine: ObservableObject {
         
         isProcessing = true
         DispatchQueue.global().async {
-            let decrypted = LockstitchBridge.decryptString(self.inputText)
+            let decrypted = LockstitchBridge.decryptString(self.inputText) ?? ""
             
             DispatchQueue.main.async {
                 self.outputText = decrypted
