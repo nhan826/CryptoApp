@@ -46,8 +46,7 @@ struct ContentView: View {
     }
 }
 
-@main
-struct CryptoApp: App {
+struct CryptoApp_Unused {
     var body: some Scene {
         WindowGroup {
             ContentView()

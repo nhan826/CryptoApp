@@ -114,7 +114,7 @@ file "$SCRIPT_DIR/CryptoApp.swift" || true
 echo ""
 
 # Run Swift compilation, capturing all output
-swiftc "$SCRIPT_DIR/CryptoApp.swift" \
+swiftc "$SCRIPT_DIR/main.swift" "$SCRIPT_DIR/CryptoApp.swift" \
     -o "$APP_EXEC" \
     -framework Cocoa \
     -framework AppKit > "$SWIFT_LOG" 2>&1
