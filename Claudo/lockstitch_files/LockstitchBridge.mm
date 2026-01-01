@@ -2,6 +2,7 @@
 #include "Lockstitch.h"
 #include <string>
 #include <sstream>
+#include <fstream>
 
 // Helper: Convert NSString to std::string
 static std::string nsStringToString(NSString *str) {
@@ -42,18 +43,12 @@ static std::string hexStringToBytes(NSString *hexStr) {
         // Convert NSString to std::string
         std::string input = nsStringToString(plaintext);
         
-        // Call Lockstitch encryption
-        // For now, using a simple XOR as placeholder until we verify library linkage
-        // TODO: Replace with actual Lockstitch::encrypt when library is linked
+        // Call actual Lockstitch encryption
+        Lockstitch& lockstitch = Lockstitch::getLockstitch();
+        std::string output = lockstitch.encrypt(input);
         
-        std::string output;
-        const char key[] = "CRYPTOKEY";
-        for (size_t i = 0; i < input.length(); i++) {
-            output.push_back(input[i] ^ key[i % strlen(key)]);
-        }
-        
-        // Convert to hex string for display
-        return bytesToHexString(output);
+        // Output is already in hex format from Lockstitch
+        return stringToNSString(output);
     } catch (const std::exception &e) {
         return [NSString stringWithFormat:@"Error: %s", e.what()];
     }
@@ -61,17 +56,12 @@ static std::string hexStringToBytes(NSString *hexStr) {
 
 + (NSString *)decryptString:(NSString *)ciphertext {
     try {
-        // Convert hex string back to bytes
-        std::string input = hexStringToBytes(ciphertext);
+        // Convert NSString to std::string (already in hex from encrypt)
+        std::string input = nsStringToString(ciphertext);
         
-        // Call Lockstitch decryption
-        // TODO: Replace with actual Lockstitch::decrypt when library is linked
-        
-        std::string output;
-        const char key[] = "CRYPTOKEY";
-        for (size_t i = 0; i < input.length(); i++) {
-            output.push_back(input[i] ^ key[i % strlen(key)]);
-        }
+        // Call actual Lockstitch decryption
+        Lockstitch& lockstitch = Lockstitch::getLockstitch();
+        std::string output = lockstitch.decrypt(input);
         
         return stringToNSString(output);
     } catch (const std::exception &e) {
@@ -81,8 +71,23 @@ static std::string hexStringToBytes(NSString *hexStr) {
 
 + (BOOL)encryptFile:(NSString *)inputPath outputPath:(NSString *)outputPath {
     try {
-        // TODO: Call Lockstitch::encryptFile with converted paths
-        return NO;
+        // Convert NSString paths to std::string
+        std::string inPath = nsStringToString(inputPath);
+        std::string outPath = nsStringToString(outputPath);
+        
+        // Call Lockstitch file encryption
+        Lockstitch& lockstitch = Lockstitch::getLockstitch();
+        std::string result = lockstitch.encryptFile(inPath);
+        
+        // Write result to output file
+        std::ofstream outFile(outPath, std::ios::binary);
+        if (!outFile.is_open()) {
+            return NO;
+        }
+        outFile.write(result.c_str(), result.length());
+        outFile.close();
+        
+        return YES;
     } catch (const std::exception &e) {
         return NO;
     }
@@ -90,8 +95,23 @@ static std::string hexStringToBytes(NSString *hexStr) {
 
 + (BOOL)decryptFile:(NSString *)inputPath outputPath:(NSString *)outputPath {
     try {
-        // TODO: Call Lockstitch::decryptFile with converted paths
-        return NO;
+        // Convert NSString paths to std::string
+        std::string inPath = nsStringToString(inputPath);
+        std::string outPath = nsStringToString(outputPath);
+        
+        // Call Lockstitch file decryption
+        Lockstitch& lockstitch = Lockstitch::getLockstitch();
+        std::string result = lockstitch.decryptFile(inPath);
+        
+        // Write result to output file
+        std::ofstream outFile(outPath, std::ios::binary);
+        if (!outFile.is_open()) {
+            return NO;
+        }
+        outFile.write(result.c_str(), result.length());
+        outFile.close();
+        
+        return YES;
     } catch (const std::exception &e) {
         return NO;
     }
