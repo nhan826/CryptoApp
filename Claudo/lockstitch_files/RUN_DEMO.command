@@ -1,76 +1,61 @@
 #!/bin/bash
 
-# CryptoApp - Production Build
-# Builds Lockstitch library + Swift app with real encryption backend
-# Creates a standalone .app bundle ready to share
+# CryptoApp - Compile and Run
+# Pre-built Lockstitch library included
+# Just compiles Swift app and launches it
 
-set -e  # Exit on any error
+set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-BUILD_DIR="$SCRIPT_DIR/build_production"
+BUILD_DIR="$SCRIPT_DIR/build_output"
 APP_BUNDLE="$SCRIPT_DIR/CryptoApp.app"
-APP_CONTENTS="$APP_BUNDLE/Contents/MacOS"
+APP_EXEC="$APP_BUNDLE/Contents/MacOS/CryptoApp"
 
-echo "🔒 CryptoApp - Production Build"
+echo "🔒 CryptoApp"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Step 1: Check dependencies
-echo "📋 Checking dependencies..."
-if ! command -v cmake &> /dev/null; then
-    echo "📥 Installing CMake..."
-    if ! command -v brew &> /dev/null; then
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    fi
-    brew install cmake > /dev/null 2>&1
+# Check required files
+if [ ! -f "$SCRIPT_DIR/liblockstitch.a" ]; then
+    echo "❌ Error: Pre-built library not found!"
+    echo "   Expected: $SCRIPT_DIR/liblockstitch.a"
+    echo "   Make sure you extracted the artifact correctly."
+    read -p "Press Enter to close..."
+    exit 1
 fi
-echo "✅ Dependencies ready"
 
-# Step 2: Build Lockstitch library with CMake
-echo ""
-echo "📦 Building Lockstitch library..."
+if [ ! -f "$SCRIPT_DIR/CryptoApp.swift" ]; then
+    echo "❌ Error: CryptoApp.swift not found!"
+    read -p "Press Enter to close..."
+    exit 1
+fi
+
+if [ ! -f "$SCRIPT_DIR/LockstitchBridge.h" ]; then
+    echo "❌ Error: LockstitchBridge.h not found!"
+    read -p "Press Enter to close..."
+    exit 1
+fi
+
+echo "📦 Preparing to build..."
 mkdir -p "$BUILD_DIR"
-cd "$BUILD_DIR"
 
-echo "  Running CMake..."
-cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release ..
-if [ $? -ne 0 ]; then
-    echo "❌ CMake failed"
-    cd "$SCRIPT_DIR"
-    read -p "Press Enter to close..."
-    exit 1
-fi
+# Step 1: Compile Objective-C++ bridge
+echo "⚙️  Compiling bridge..."
+BRIDGE_OBJ="$BUILD_DIR/LockstitchBridge.o"
+clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
+    -o "$BRIDGE_OBJ" \
+    -fPIC \
+    -fmodules \
+    -I"$SCRIPT_DIR" 2>&1 | grep -i error || true
 
-echo "  Compiling with make..."
-make -j4
-if [ $? -ne 0 ]; then
-    echo "❌ Make failed"
-    cd "$SCRIPT_DIR"
-    read -p "Press Enter to close..."
-    exit 1
-fi
-
-LIBRARY_FILE="$BUILD_DIR/liblockstitch.a"
-if [ ! -f "$LIBRARY_FILE" ]; then
-    echo "❌ Library file not created at: $LIBRARY_FILE"
-    ls -la "$BUILD_DIR/" | head -20
-    cd "$SCRIPT_DIR"
-    read -p "Press Enter to close..."
-    exit 1
-fi
-echo "✅ Library built: $LIBRARY_FILE"
-
-cd "$SCRIPT_DIR"
-
-# Step 3: Prepare app bundle
-echo ""
-echo "🏗️  Creating app bundle..."
+# Step 2: Compile Swift app and link with library
+echo "🔨 Compiling app..."
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_CONTENTS"
+mkdir -p "$APP_BUNDLE/Contents/MacOS"
+mkdir -p "$APP_BUNDLE/Contents/Resources"
 
 # Create Info.plist
-mkdir -p "$APP_BUNDLE/Contents/Resources"
-cat > "$APP_BUNDLE/Contents/Info.plist" << 'EOF'
+cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -93,64 +78,40 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'EOF'
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>10.13</string>
-    <key>NSPrincipalClass</key>
-    <string>NSApplication</string>
 </dict>
-</plist>
-EOF
+</PLIST>
 
-# Step 4: Compile Swift app with Objective-C++ bridge
-echo ""
-echo "🔨 Compiling Swift app with Lockstitch bridge..."
-
-# Compile Objective-C++ wrapper
-echo "  Compiling Objective-C++ bridge..."
-WRAPPER_OBJ="$BUILD_DIR/LockstitchBridge.o"
-clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
-    -o "$WRAPPER_OBJ" \
-    -fPIC \
-    -fmodules \
-    -I"$SCRIPT_DIR" \
-    -I"$BUILD_DIR" 2>&1 | head -20
-
-if [ ! -f "$WRAPPER_OBJ" ]; then
-    echo "⚠️  Objective-C++ compilation had issues, continuing..."
-fi
-
-# Compile Swift app and link everything
-echo "  Compiling Swift app..."
+# Compile with pre-built library
 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
-    "$WRAPPER_OBJ" \
-    "$LIBRARY_FILE" \
-    -o "$APP_CONTENTS/CryptoApp" \
+    "$BRIDGE_OBJ" \
+    "$SCRIPT_DIR/liblockstitch.a" \
+    -o "$APP_EXEC" \
     -framework Cocoa \
     -framework AppKit 2>&1
 
-if [ ! -f "$APP_CONTENTS/CryptoApp" ]; then
-    echo "❌ Failed to compile Swift app"
+if [ ! -f "$APP_EXEC" ]; then
+    echo "❌ Compilation failed"
     read -p "Press Enter to close..."
     exit 1
 fi
 
-echo "✅ App compiled and linked"
+# Make executable
+chmod +x "$APP_EXEC"
 
-# Step 5: Launch
+echo "✅ Build complete!"
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🚀 Launching CryptoApp..."
+echo "🚀 Launching..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
 open "$APP_BUNDLE"
 
 echo ""
-echo "✅ Done! App bundle created at:"
-echo "   $APP_BUNDLE"
+echo "✅ CryptoApp is ready!"
 echo ""
-echo "To share this app with others:"
-echo "   1. Zip the CryptoApp.app folder"
-echo "   2. Share the zip file"
-echo "   3. They can unzip and run it directly (no build needed)"
+echo "📦 To share this app:"
+echo "   Zip CryptoApp.app and share with others"
+echo "   They can unzip and run it (no build needed)"
 echo ""
 read -p "Press Enter to close..."

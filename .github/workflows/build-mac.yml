@@ -1,102 +1,60 @@
-name: Build Lockstitch Mac Library & App
+name: Build CryptoApp for Mac
 
 on:
   push:
-    branches: [ master, main, develop ]
-  pull_request:
     branches: [ master, main ]
   workflow_dispatch:
 
 jobs:
-  build-library:
+  build-mac-app:
     runs-on: macos-latest
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Install Dependencies
+    - name: Install CMake
       run: |
         brew install cmake
         xcode-select --install || true
     
-    - name: Create build directory
-      run: mkdir -p Claudo/lockstitch_files/build
-    
-    - name: Run CMake
+    - name: Build Lockstitch Library
       run: |
-        cd Claudo/lockstitch_files/build
+        cd Claudo/lockstitch_files
+        mkdir -p build
+        cd build
         cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release ..
-    
-    - name: Build Library
-      run: |
-        cd Claudo/lockstitch_files/build
         make -j4
+        echo "=== Library Built ==="
+        ls -lh liblockstitch.a
     
-    - name: Check Build Output
+    - name: Create App Package
       run: |
-        echo "=== Build Output ==="
-        ls -la Claudo/lockstitch_files/build/
-        file Claudo/lockstitch_files/build/liblockstitch.a || echo "Library file not found"
+        cd Claudo/lockstitch_files
+        mkdir -p CryptoApp-ready
+        
+        # Copy everything needed
+        cp build/liblockstitch.a CryptoApp-ready/
+        cp CMakeLists.txt CryptoApp-ready/
+        cp Lockstitch.h CryptoApp-ready/
+        cp Lockstitch.cpp CryptoApp-ready/
+        cp pch.h CryptoApp-ready/
+        cp pch.cpp CryptoApp-ready/
+        cp framework.h CryptoApp-ready/
+        cp LockstitchBridge.h CryptoApp-ready/
+        cp LockstitchBridge.mm CryptoApp-ready/
+        cp CryptoApp.swift CryptoApp-ready/
+        cp RUN_DEMO.command CryptoApp-ready/
+        chmod +x CryptoApp-ready/RUN_DEMO.command
+        
+        echo "=== Package Contents ==="
+        ls -lh CryptoApp-ready/
     
-    - name: Upload Library Artifacts
+    - name: Upload App Package
       uses: actions/upload-artifact@v4
       with:
-        name: lockstitch-mac-libraries
-        path: Claudo/lockstitch_files/build/liblockstitch.a
-        if-no-files-found: warn
+        name: CryptoApp-macOS-ready
+        path: Claudo/lockstitch_files/CryptoApp-ready/
         retention-days: 30
-
-  build-app:
-    runs-on: macos-latest
-    needs: build-library
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Download Library Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: lockstitch-mac-libraries
-        path: Claudo/lockstitch_files/build/
-    
-    - name: Setup Xcode Build Environment
-      run: |
-        xcode-select --install || true
-        sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer || true
-    
-    - name: Create Xcode Project Structure
-      run: |
-        mkdir -p CryptoApp-macOS/CryptoApp
-        mkdir -p CryptoApp-macOS/Lockstitch
-        mkdir -p CryptoApp-macOS/CryptoApp.xcodeproj
-    
-    - name: Copy Source Files
-      run: |
-        # Copy lockstitch library files
-        cp Claudo/lockstitch_files/Lockstitch.h CryptoApp-macOS/Lockstitch/
-        cp Claudo/lockstitch_files/Lockstitch.cpp CryptoApp-macOS/Lockstitch/
-        cp Claudo/lockstitch_files/pch.h CryptoApp-macOS/Lockstitch/
-        cp Claudo/lockstitch_files/pch.cpp CryptoApp-macOS/Lockstitch/
-        cp Claudo/lockstitch_files/framework.h CryptoApp-macOS/Lockstitch/
-        cp Claudo/lockstitch_files/LockstitchWrapper.h CryptoApp-macOS/Lockstitch/
-        cp Claudo/lockstitch_files/LockstitchWrapper.mm CryptoApp-macOS/Lockstitch/
-        cp Claudo/lockstitch_files/CMakeLists.txt CryptoApp-macOS/Lockstitch/
-        
-        # Copy built library
-        cp Claudo/lockstitch_files/build/liblockstitch.a CryptoApp-macOS/Lockstitch/
-        
-        # Copy UI files
-        cp Claudo/lockstitch_files/ViewController.swift CryptoApp-macOS/CryptoApp/
-        
-        # Copy demo files to root
-        cp Claudo/lockstitch_files/CryptoApp-Demo.swift CryptoApp-macOS/
-        cp Claudo/lockstitch_files/RUN_DEMO.command CryptoApp-macOS/
-        chmod +x CryptoApp-macOS/RUN_DEMO.command
-        
-        # Copy Code.txt if it exists
-        if [ -f "Claudo/code.txt" ]; then
-          cp Claudo/code.txt CryptoApp-macOS/CryptoApp/Code.txt
-        fi
     
     - name: Create Project.pbxproj
       run: |
