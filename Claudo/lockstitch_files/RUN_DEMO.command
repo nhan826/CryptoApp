@@ -90,13 +90,23 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 
 # Compile with pre-built library
 echo ""
-echo "Details: Linking with liblockstitch.a..."
+echo "Details: Compiling and linking..."
 echo ""
 
+# Also compile Lockstitch.cpp alongside the bridge
+echo "Compiling Lockstitch.cpp..."
+LOCKSTITCH_OBJ="$BUILD_DIR/Lockstitch.o"
+clang++ -c "$SCRIPT_DIR/Lockstitch.cpp" \
+    -o "$LOCKSTITCH_OBJ" \
+    -fPIC \
+    -std=c++11 \
+    -I"$SCRIPT_DIR" 2>&1
+
+echo "Linking Swift app..."
 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
     "$BRIDGE_OBJ" \
-    "$SCRIPT_DIR/liblockstitch.a" \
+    "$LOCKSTITCH_OBJ" \
     -o "$APP_EXEC" \
     -framework Cocoa \
     -framework AppKit \
@@ -104,16 +114,23 @@ swiftc "$SCRIPT_DIR/CryptoApp.swift" \
 
 SWIFT_EXIT=$?
 
-if [ $SWIFT_EXIT -ne 0 ]; then
+echo "Compilation exit code: $SWIFT_EXIT"
+echo "Checking for executable at: $APP_EXEC"
+ls -la "$APP_EXEC" 2>&1 || echo "Executable not found!"
+
+if [ $SWIFT_EXIT -ne 0 ] || [ ! -f "$APP_EXEC" ]; then
     echo ""
-    echo "❌ App compilation failed (exit code: $SWIFT_EXIT)"
+    echo "❌ App compilation failed"
     echo ""
-    echo "Files in directory:"
-    ls -la "$SCRIPT_DIR" | grep -E "\.(swift|h|mm|a)$"
+    echo "Debug info:"
+    echo "Build directory contents:"
+    ls -la "$BUILD_DIR" 2>&1 || echo "Build dir not found"
     echo ""
-    echo "Try running manually in Terminal:"
-    echo "cd $SCRIPT_DIR"
-    echo "swiftc CryptoApp.swift -import-objc-header LockstitchBridge.h build_output/LockstitchBridge.o liblockstitch.a -o build_output/CryptoApp -framework Cocoa -framework AppKit"
+    echo "Source files check:"
+    ls -la "$SCRIPT_DIR"/*.{swift,h,cpp} 2>&1 || echo "Missing source files"
+    echo ""
+    echo "Try running manually for details:"
+    echo "cd $SCRIPT_DIR && swiftc CryptoApp.swift -import-objc-header LockstitchBridge.h build_output/LockstitchBridge.o build_output/Lockstitch.o -o build_output/CryptoApp -framework Cocoa -framework AppKit"
     read -p "Press Enter to close..."
     exit 1
 fi
