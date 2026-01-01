@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 class CryptoEngine: ObservableObject {
     @Published var inputText = ""
@@ -200,7 +201,7 @@ struct ContentView: View {
                     Text("📋 Copy").frame(maxWidth: .infinity)
                 }
                 .padding(10)
-                .background(Color.cyan)
+                .background(Color.blue)
                 .foregroundColor(.white)
                 .cornerRadius(4)
                 
