@@ -206,6 +206,8 @@ struct ContentView: View {
     }
 }
 
+// Application entry point
+@main
 struct CryptoApp: App {
     var body: some Scene {
         WindowGroup {
@@ -213,6 +215,3 @@ struct CryptoApp: App {
         }
     }
 }
-
-@main
-extension CryptoApp {}

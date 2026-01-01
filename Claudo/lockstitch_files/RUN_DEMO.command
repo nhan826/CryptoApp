@@ -82,6 +82,37 @@ SWIFT_LOG="$BUILD_DIR/swift_compile.log"
 echo "Starting Swift compilation..."
 echo ""
 
+# Verify input files exist
+echo "Verifying input files..."
+if [ ! -f "$SCRIPT_DIR/CryptoApp.swift" ]; then
+    echo "❌ CryptoApp.swift not found at $SCRIPT_DIR/CryptoApp.swift"
+    exit 1
+fi
+echo "✅ CryptoApp.swift found ($(wc -l < "$SCRIPT_DIR/CryptoApp.swift") lines)"
+
+if [ ! -f "$SCRIPT_DIR/LockstitchBridge.h" ]; then
+    echo "❌ LockstitchBridge.h not found"
+    exit 1
+fi
+echo "✅ LockstitchBridge.h found"
+
+if [ ! -f "$BRIDGE_OBJ" ]; then
+    echo "❌ LockstitchBridge.o not found"
+    exit 1
+fi
+echo "✅ LockstitchBridge.o found ($(stat -f%z "$BRIDGE_OBJ" 2>/dev/null || echo "?") bytes)"
+
+if [ ! -f "$LOCKSTITCH_OBJ" ]; then
+    echo "❌ Lockstitch.o not found"
+    exit 1
+fi
+echo "✅ Lockstitch.o found ($(stat -f%z "$LOCKSTITCH_OBJ" 2>/dev/null || echo "?") bytes)"
+
+echo ""
+echo "File diagnostics:"
+file "$SCRIPT_DIR/CryptoApp.swift" || true
+echo ""
+
 # Run Swift compilation, capturing all output
 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
@@ -102,6 +133,25 @@ if [ -s "$SWIFT_LOG" ]; then
     echo "=== Compiler Output ==="
     cat "$SWIFT_LOG"
     echo "=== End Output ==="
+    echo ""
+fi
+
+# If compilation failed, show more diagnostics
+if [ $SWIFT_EXIT -ne 0 ]; then
+    echo ""
+    echo "=== DIAGNOSTIC INFO ==="
+    echo "Swift version:"
+    swift --version
+    echo ""
+    echo "First 20 lines of CryptoApp.swift:"
+    head -20 "$SCRIPT_DIR/CryptoApp.swift"
+    echo ""
+    echo "Last 20 lines of CryptoApp.swift:"
+    tail -20 "$SCRIPT_DIR/CryptoApp.swift"
+    echo ""
+    echo "File encoding:"
+    file -I "$SCRIPT_DIR/CryptoApp.swift"
+    echo "=== END DIAGNOSTIC ==="
     echo ""
 fi
 
