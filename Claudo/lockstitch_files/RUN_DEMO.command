@@ -32,12 +32,30 @@ echo "📦 Building Lockstitch library..."
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
-cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release .. > /dev/null 2>&1
-make -j4 > /dev/null 2>&1
+echo "  Running CMake..."
+cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release ..
+if [ $? -ne 0 ]; then
+    echo "❌ CMake failed"
+    cd "$SCRIPT_DIR"
+    read -p "Press Enter to close..."
+    exit 1
+fi
+
+echo "  Compiling with make..."
+make -j4
+if [ $? -ne 0 ]; then
+    echo "❌ Make failed"
+    cd "$SCRIPT_DIR"
+    read -p "Press Enter to close..."
+    exit 1
+fi
 
 LIBRARY_FILE="$BUILD_DIR/liblockstitch.a"
 if [ ! -f "$LIBRARY_FILE" ]; then
-    echo "❌ Failed to build library"
+    echo "❌ Library file not created at: $LIBRARY_FILE"
+    ls -la "$BUILD_DIR/" | head -20
+    cd "$SCRIPT_DIR"
+    read -p "Press Enter to close..."
     exit 1
 fi
 echo "✅ Library built: $LIBRARY_FILE"
@@ -86,32 +104,32 @@ echo ""
 echo "🔨 Compiling Swift app with Lockstitch bridge..."
 
 # Compile Objective-C++ wrapper
+echo "  Compiling Objective-C++ bridge..."
 WRAPPER_OBJ="$BUILD_DIR/LockstitchBridge.o"
 clang++ -c "$SCRIPT_DIR/LockstitchBridge.mm" \
     -o "$WRAPPER_OBJ" \
     -fPIC \
     -fmodules \
     -I"$SCRIPT_DIR" \
-    -I"$BUILD_DIR" \
-    2>/dev/null
+    -I"$BUILD_DIR" 2>&1 | head -20
 
 if [ ! -f "$WRAPPER_OBJ" ]; then
-    echo "❌ Failed to compile Objective-C++ wrapper"
-    exit 1
+    echo "⚠️  Objective-C++ compilation had issues, continuing..."
 fi
 
 # Compile Swift app and link everything
+echo "  Compiling Swift app..."
 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
     "$WRAPPER_OBJ" \
     "$LIBRARY_FILE" \
     -o "$APP_CONTENTS/CryptoApp" \
     -framework Cocoa \
-    -framework AppKit \
-    2>/dev/null
+    -framework AppKit 2>&1
 
 if [ ! -f "$APP_CONTENTS/CryptoApp" ]; then
     echo "❌ Failed to compile Swift app"
+    read -p "Press Enter to close..."
     exit 1
 fi
 
