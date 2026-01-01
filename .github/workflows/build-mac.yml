@@ -18,23 +18,24 @@ jobs:
         mkdir -p build_final
         cd build_final
         
-        # Compile C++ bridge
-        clang++ -c ../LockstitchBridge.mm -o LockstitchBridge.o -fPIC -fmodules -std=c++17 -I..
-        echo "✅ Bridge compiled"
+        # Compile C++ bridge for x86_64 (Intel Mac)
+        clang++ -c ../LockstitchBridge.mm -o LockstitchBridge.o -arch x86_64 -fPIC -fmodules -std=c++17 -I..
+        echo "✅ Bridge compiled for x86_64"
         
-        # Compile Lockstitch library
-        clang++ -c ../Lockstitch.cpp -o Lockstitch.o -fPIC -std=c++17 -I..
-        echo "✅ Lockstitch compiled"
+        # Compile Lockstitch library for x86_64 (Intel Mac)
+        clang++ -c ../Lockstitch.cpp -o Lockstitch.o -arch x86_64 -fPIC -std=c++17 -I..
+        echo "✅ Lockstitch compiled for x86_64"
         
-        # Compile Swift to single executable with C++ linking
+        # Compile Swift to single executable with C++ linking for x86_64 (Intel Mac)
         swiftc ../main.swift ../CryptoApp.swift \
           LockstitchBridge.o Lockstitch.o \
           -parse-as-library \
           -lc++ \
           -o CryptoApp \
+          -target x86_64-apple-macos11 \
           -framework Cocoa \
           -framework AppKit
-        echo "✅ Swift compiled"
+        echo "✅ Swift compiled for x86_64"
         
         # Create app bundle structure
         mkdir -p CryptoApp.app/Contents/MacOS
