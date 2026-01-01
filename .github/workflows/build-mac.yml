@@ -61,6 +61,12 @@ jobs:
         
         echo "✅ App bundle created"
         ls -lh CryptoApp.app/Contents/MacOS/CryptoApp
+        
+        # Code sign the app (ad-hoc signing for distribution)
+        echo "🔐 Code signing app..."
+        codesign --force --deep --sign - CryptoApp.app/
+        echo "✅ App signed successfully"
+        codesign --verify --verbose CryptoApp.app/
     
     - name: Upload App Bundle
       uses: actions/upload-artifact@v4
