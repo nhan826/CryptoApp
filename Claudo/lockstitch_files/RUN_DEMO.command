@@ -78,22 +78,53 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "STEP 3: Compiling Swift App (may take 30-60 seconds)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-swiftc "$SCRIPT_DIR/CryptoApp.swift" \
+SWIFT_LOG="$BUILD_DIR/swift_compile.log"
+echo "Starting Swift compilation..."
+echo ""
+
+# Run Swift compilation with timeout, capturing all output
+timeout 120 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
     "$BRIDGE_OBJ" \
     "$LOCKSTITCH_OBJ" \
     -o "$APP_EXEC" \
     -framework Cocoa \
-    -framework AppKit
+    -framework AppKit > "$SWIFT_LOG" 2>&1
 
-if [ ! -f "$APP_EXEC" ]; then
+SWIFT_EXIT=$?
+
+echo ""
+echo "Swift compilation finished with exit code: $SWIFT_EXIT"
+echo ""
+
+# Show any output from the compiler
+if [ -s "$SWIFT_LOG" ]; then
+    echo "=== Compiler Output ==="
+    cat "$SWIFT_LOG"
+    echo "=== End Output ==="
     echo ""
-    echo "❌ Swift compilation failed - executable not created"
-    echo "Build directory contents:"
+fi
+
+if [ $SWIFT_EXIT -ne 0 ]; then
+    echo "❌ Swift compilation FAILED (exit code: $SWIFT_EXIT)"
+    echo ""
+    echo "Build directory:"
     ls -la "$BUILD_DIR"
+    echo ""
     read -p "Press Enter to close..."
     exit 1
 fi
+
+if [ ! -f "$APP_EXEC" ]; then
+    echo "❌ Executable was not created even though exit code was 0"
+    echo ""
+    echo "Build directory:"
+    ls -la "$BUILD_DIR"
+    echo ""
+    read -p "Press Enter to close..."
+    exit 1
+fi
+
 echo "✅ Swift app compiled"
 echo ""
 
