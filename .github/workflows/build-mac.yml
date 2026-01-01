@@ -25,7 +25,8 @@ jobs:
         swiftc ../main.swift ../CryptoApp.swift \
           LockstitchBridge-x86_64.o Lockstitch-x86_64.o \
           -parse-as-library \
-          -lSystem -lc++ -lc++abi \
+          -Xcc -stdlib=libc++ \
+          -lSystem -lc++ -lc++abi -lobjc \
           -o CryptoApp-x86_64 \
           -target x86_64-apple-macos11 \
           -framework Cocoa -framework AppKit
@@ -38,7 +39,8 @@ jobs:
         swiftc ../main.swift ../CryptoApp.swift \
           LockstitchBridge-arm64.o Lockstitch-arm64.o \
           -parse-as-library \
-          -lSystem -lc++ -lc++abi \
+          -Xcc -stdlib=libc++ \
+          -lSystem -lc++ -lc++abi -lobjc \
           -o CryptoApp-arm64 \
           -target arm64-apple-macos11 \
           -framework Cocoa -framework AppKit
