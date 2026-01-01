@@ -12,30 +12,45 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Build Complete App Bundle
+    - name: Build Complete App Bundle (Universal Binary)
       run: |
         cd Claudo/lockstitch_files
         mkdir -p build_final
         cd build_final
         
-        # Compile C++ bridge for x86_64 (Intel Mac)
-        clang++ -c ../LockstitchBridge.mm -o LockstitchBridge.o -arch x86_64 -fPIC -fmodules -std=c++17 -I..
-        echo "✅ Bridge compiled for x86_64"
-        
-        # Compile Lockstitch library for x86_64 (Intel Mac)
-        clang++ -c ../Lockstitch.cpp -o Lockstitch.o -arch x86_64 -fPIC -std=c++17 -I..
-        echo "✅ Lockstitch compiled for x86_64"
-        
-        # Compile Swift to single executable with C++ linking for x86_64 (Intel Mac)
+        # Build for x86_64 (Intel Mac)
+        echo "🔨 Building for x86_64 (Intel)..."
+        clang++ -c ../LockstitchBridge.mm -o LockstitchBridge-x86_64.o -arch x86_64 -fPIC -fmodules -std=c++17 -I..
+        clang++ -c ../Lockstitch.cpp -o Lockstitch-x86_64.o -arch x86_64 -fPIC -std=c++17 -I..
         swiftc ../main.swift ../CryptoApp.swift \
-          LockstitchBridge.o Lockstitch.o \
+          LockstitchBridge-x86_64.o Lockstitch-x86_64.o \
           -parse-as-library \
           -lc++ \
-          -o CryptoApp \
+          -o CryptoApp-x86_64 \
           -target x86_64-apple-macos11 \
           -framework Cocoa \
           -framework AppKit
-        echo "✅ Swift compiled for x86_64"
+        echo "✅ x86_64 build complete"
+        
+        # Build for arm64 (Apple Silicon)
+        echo "🔨 Building for arm64 (Apple Silicon)..."
+        clang++ -c ../LockstitchBridge.mm -o LockstitchBridge-arm64.o -arch arm64 -fPIC -fmodules -std=c++17 -I..
+        clang++ -c ../Lockstitch.cpp -o Lockstitch-arm64.o -arch arm64 -fPIC -std=c++17 -I..
+        swiftc ../main.swift ../CryptoApp.swift \
+          LockstitchBridge-arm64.o Lockstitch-arm64.o \
+          -parse-as-library \
+          -lc++ \
+          -o CryptoApp-arm64 \
+          -target arm64-apple-macos11 \
+          -framework Cocoa \
+          -framework AppKit
+        echo "✅ arm64 build complete"
+        
+        # Create universal binary using lipo
+        echo "🔗 Merging into universal binary..."
+        lipo -create CryptoApp-x86_64 CryptoApp-arm64 -output CryptoApp
+        echo "✅ Universal binary created"
+        file CryptoApp
         
         # Create app bundle structure
         mkdir -p CryptoApp.app/Contents/MacOS
