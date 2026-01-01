@@ -88,6 +88,11 @@ jobs:
         # Copy UI files
         cp Claudo/lockstitch_files/ViewController.swift CryptoApp-macOS/CryptoApp/
         
+        # Copy demo files to root
+        cp Claudo/lockstitch_files/CryptoApp-Demo.swift CryptoApp-macOS/
+        cp Claudo/lockstitch_files/RUN_DEMO.command CryptoApp-macOS/
+        chmod +x CryptoApp-macOS/RUN_DEMO.command
+        
         # Copy Code.txt if it exists
         if [ -f "Claudo/code.txt" ]; then
           cp Claudo/code.txt CryptoApp-macOS/CryptoApp/Code.txt
