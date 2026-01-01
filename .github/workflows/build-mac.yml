@@ -29,6 +29,7 @@ jobs:
         # Compile Swift to single executable with C++ linking
         swiftc ../main.swift ../CryptoApp.swift \
           LockstitchBridge.o Lockstitch.o \
+          -parse-as-library \
           -o CryptoApp \
           -framework Cocoa \
           -framework AppKit
