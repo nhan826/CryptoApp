@@ -67,11 +67,17 @@ jobs:
         codesign --force --deep --sign - CryptoApp.app/
         echo "✅ App signed successfully"
         codesign --verify --verbose CryptoApp.app/
+        
+        # Create a zip file of the app for distribution
+        echo "📦 Creating distributable zip file..."
+        cd ..
+        zip -r CryptoApp-Ready-to-Run.zip build_final/CryptoApp.app
+        echo "✅ Zip file created"
     
     - name: Upload App Bundle
       uses: actions/upload-artifact@v4
       with:
         name: CryptoApp-Ready-to-Run
-        path: Claudo/lockstitch_files/build_final/CryptoApp.app
+        path: Claudo/lockstitch_files/CryptoApp-Ready-to-Run.zip
         retention-days: 30
 
