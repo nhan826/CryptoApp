@@ -1,29 +1,23 @@
 #!/bin/bash
 
-# CryptoApp - Full version with Lockstitch library
-# This script builds the library and launches the native macOS app
+# CryptoApp - Complete build and run (no Xcode needed!)
+# Double-click and it just works
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 LOCKSTITCH_DIR="$SCRIPT_DIR/Lockstitch"
 BUILD_DIR="$LOCKSTITCH_DIR/build"
 LIBRARY_FILE="$BUILD_DIR/liblockstitch.a"
+APP_DIR="$SCRIPT_DIR/build_app"
+APP_NAME="CryptoApp"
 
-echo "🔧 Building CryptoApp with Lockstitch Library..."
+echo "🔧 Building CryptoApp..."
 echo "This may take 1-2 minutes on first run..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
 # Check if Lockstitch directory exists
 if [ ! -d "$LOCKSTITCH_DIR" ]; then
-    echo "❌ Error: Lockstitch directory not found at: $LOCKSTITCH_DIR"
-    echo "Make sure you extracted the full artifact."
-    read -p "Press Enter to close..."
-    exit 1
-fi
-
-# Check if CMakeLists.txt exists
-if [ ! -f "$LOCKSTITCH_DIR/CMakeLists.txt" ]; then
-    echo "❌ Error: CMakeLists.txt not found in Lockstitch directory"
+    echo "❌ Error: Lockstitch directory not found"
     read -p "Press Enter to close..."
     exit 1
 fi
@@ -52,29 +46,41 @@ if [ ! -f "$LIBRARY_FILE" ]; then
         read -p "Press Enter to close..."
         exit 1
     fi
-    echo "✅ Library built successfully"
+    echo "✅ Library built"
 else
-    echo "✅ Library already built"
+    echo "✅ Library ready"
 fi
 
+# Step 2: Compile Swift app
 echo ""
-echo "🚀 Opening Xcode project..."
+echo "🔨 Compiling Swift app..."
+mkdir -p "$APP_DIR"
+
+DEMO_FILE="$SCRIPT_DIR/CryptoApp-Demo.swift"
+if [ ! -f "$DEMO_FILE" ]; then
+    echo "❌ Error: CryptoApp-Demo.swift not found"
+    read -p "Press Enter to close..."
+    exit 1
+fi
+
+swiftc "$DEMO_FILE" -o "$APP_DIR/$APP_NAME" 2>&1
+
+if [ ! -f "$APP_DIR/$APP_NAME" ]; then
+    echo "❌ Failed to compile app"
+    read -p "Press Enter to close..."
+    exit 1
+fi
+
+echo "✅ App compiled"
+
+# Step 3: Run it!
+echo ""
+echo "🚀 Launching..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "The CryptoApp.xcodeproj is ready to open in Xcode."
-echo "To build and run:"
-echo "  1. Open CryptoApp.xcodeproj in Xcode"
-echo "  2. Select 'CryptoApp' as the target"
-echo "  3. Press Cmd+R to build and run"
-echo ""
 
-# Look for Xcode project
-XCODE_PROJECT="$SCRIPT_DIR/CryptoApp.xcodeproj"
-if [ -d "$XCODE_PROJECT" ]; then
-    open "$XCODE_PROJECT"
-else
-    echo "⚠️  Xcode project not found at: $XCODE_PROJECT"
-fi
+"$APP_DIR/$APP_NAME"
 
 echo ""
-read -p "Press Enter to close this window..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+read -p "Press Enter to close..."
