@@ -82,8 +82,8 @@ SWIFT_LOG="$BUILD_DIR/swift_compile.log"
 echo "Starting Swift compilation..."
 echo ""
 
-# Run Swift compilation with timeout, capturing all output
-timeout 120 swiftc "$SCRIPT_DIR/CryptoApp.swift" \
+# Run Swift compilation, capturing all output
+swiftc "$SCRIPT_DIR/CryptoApp.swift" \
     -import-objc-header "$SCRIPT_DIR/LockstitchBridge.h" \
     "$BRIDGE_OBJ" \
     "$LOCKSTITCH_OBJ" \
