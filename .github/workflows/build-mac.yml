@@ -1,0 +1,130 @@
+name: Build Lockstitch Mac Library & App
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-library:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install CMake
+      run: brew install cmake
+    
+    - name: Create build directory
+      run: mkdir -p Claudo/lockstitch_files/build
+    
+    - name: Run CMake
+      run: |
+        cd Claudo/lockstitch_files/build
+        cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" ..
+    
+    - name: Build Library
+      run: |
+        cd Claudo/lockstitch_files/build
+        make
+    
+    - name: Upload Library Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: lockstitch-mac-libraries
+        path: |
+          Claudo/lockstitch_files/build/liblockstitch.a
+          Claudo/lockstitch_files/build/liblockstitch.dylib
+        retention-days: 30
+
+  build-app:
+    runs-on: macos-latest
+    needs: build-library
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Download Library Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: lockstitch-mac-libraries
+    
+    - name: Create Xcode Project Structure
+      run: |
+        mkdir -p CryptoApp-macOS/CryptoApp
+        mkdir -p CryptoApp-macOS/Lockstitch
+    
+    - name: Copy Source Files
+      run: |
+        # Copy lockstitch library files
+        cp Claudo/lockstitch_files/Lockstitch.h CryptoApp-macOS/Lockstitch/
+        cp Claudo/lockstitch_files/Lockstitch.cpp CryptoApp-macOS/Lockstitch/
+        cp Claudo/lockstitch_files/pch.h CryptoApp-macOS/Lockstitch/
+        cp Claudo/lockstitch_files/pch.cpp CryptoApp-macOS/Lockstitch/
+        cp Claudo/lockstitch_files/framework.h CryptoApp-macOS/Lockstitch/
+        cp Claudo/lockstitch_files/LockstitchWrapper.h CryptoApp-macOS/Lockstitch/
+        cp Claudo/lockstitch_files/LockstitchWrapper.mm CryptoApp-macOS/Lockstitch/
+        cp Claudo/lockstitch_files/CMakeLists.txt CryptoApp-macOS/Lockstitch/
+        
+        # Copy built library
+        cp Claudo/lockstitch_files/build/liblockstitch.a CryptoApp-macOS/Lockstitch/
+        
+        # Copy UI files
+        cp Claudo/lockstitch_files/ViewController.swift CryptoApp-macOS/CryptoApp/
+        
+        # Copy Code.txt if it exists
+        if [ -f "Claudo/code.txt" ]; then
+          cp Claudo/code.txt CryptoApp-macOS/CryptoApp/Code.txt
+        fi
+    
+    - name: Generate Xcode Project (Provisional)
+      run: |
+        cd CryptoApp-macOS/Lockstitch
+        mkdir -p build
+        cd build
+        cmake -G Xcode ..
+    
+    - name: Display Build Artifacts
+      run: |
+        echo "=== Library Artifacts ==="
+        ls -lah CryptoApp-macOS/Lockstitch/liblockstitch.a || echo "Static library not found"
+        echo ""
+        echo "=== Source Files Ready ==="
+        ls -la CryptoApp-macOS/Lockstitch/
+        ls -la CryptoApp-macOS/CryptoApp/
+    
+    - name: Upload Complete Project
+      uses: actions/upload-artifact@v3
+      with:
+        name: CryptoApp-macOS-project
+        path: CryptoApp-macOS/
+        retention-days: 30
+
+  create-release:
+    runs-on: macos-latest
+    needs: [build-library, build-app]
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          lockstitch-mac-libraries/liblockstitch.a
+          lockstitch-mac-libraries/liblockstitch.dylib
+        body: |
+          ## Lockstitch Mac Build Release
+          
+          - **liblockstitch.a** - Universal binary (Intel + Apple Silicon)
+          - **liblockstitch.dylib** - Shared library
+          
+          See MAC_BUILD_INSTRUCTIONS.md for integration details.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

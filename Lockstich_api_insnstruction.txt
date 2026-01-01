@@ -1,0 +1,51 @@
+Lockstitch.lib can encrypt and decrypt any kind of files.
+
+public methods/APIs
+1. static Lockstitch& getLockstitch()
+   This is an static method. When you call a Lockstitch.lib API, you need first call this method Lockstitch point pointing to an instance
+
+2. string encrypt(string);
+   Encrypts a string, and returns the encrypted string.  Input is the string which need to be encrypted.
+   
+3. wstring encrypt(wstring);
+      Encrypts a wide string (Unicode string), and returns the encrypted wide string. Input is the wide string which need to be encrypted
+      
+4. string decrypt(string&);
+      Decrypts a string, and returns the decrypted string. Input is the reference of an encrypted string which needs to be decrypted
+      
+5. wstring decrypt(wstring&);
+      Decrypts a wide string, and returns the decrypted wide string. Input is the reference of an encrypted wide string which needs to be decrypted
+      
+6. string encryptFile(string fileName, bool express = true, int headSize = 0);
+      Encrypts the content of a file. It can be any kind of files including text files.
+      parameters:
+      --- fileName - string type, the name of the file needs to be encrypted
+      --- express - bool type, indicates whether fast encryption or multiple ways encryptions
+      --- headSize - int type, specify how many starting bytes of the file which you don't want to encrypt. A file starting bytes contains the information of file strcture, format. keep the bytes un-encrypted so that the file still can be open, but may not human readable.
+      --- return value - string type.  It is the name of the encrypted file. E.G, input file name is "ABC.bmp", the return value is "ABC_Encode.bmp".
+      
+7. wstring encryptFile(wstring fileName, bool express = true, int headSize = 0);
+      Identicle as previous one, except the input file is type of wstring (wide/Unicode string) instead of string. The return value is also a wstring
+      
+8. string decryptFile(string fileName, bool express = true);
+      Decrypts the content of a encrypted file.
+      parameters:
+      --- fileName - string type, the name of the file needs to be decrypted
+      --- express - bool type, indicates the input file id expressly encrypted or encrypted by multiple encryption ways
+      --- return value - string type.  It is the name of the decrypted file. E.G, original file which was decrypted hasing name "ABC.bmp", the return value is "ABC_Decode.bmp".
+            
+9. wstring decryptFile(wstring fileName, bool express = true);
+      Identicle as previous one, except the input file is type of wstring (wide/Unicode string) instead of string. The return value is also a wstring 
+
+10. string loadTxtFile(string& fileName);
+      Loads a text file content for encrypting.
+      parameters:
+      --- fileName -  string type reference. the name of the file.
+      return: the encrypted string
+      
+11. wstring loadTxtFile(wstring&);
+      Loads a text file content for encrypting.
+      parameters:
+      --- fileName -  wstring (wide string/Unicode string) type reference. the name of the file.
+      return: the encrypted wide string
+	
